@@ -50,14 +50,18 @@ async def game(ctx,
 
 @bot.slash_command()
 async def player(ctx,
-                 name: Option(str, "Name of the player"),
-                 game: Option(str, "game name", choices=["Echo Arena","Onward","Pavlov","Snapshot","Contractors","Final Assult"])):
+                        name: Option(str, "Name of the player"),
+                        game: Option(str, "game name", required=False, choices=["Echo Arena","Onward","Pavlov","Snapshot","Contractors","Final Assult"])):
     await ctx.defer()   # buying some time
 
     found_players = await vrml.player_search(name)
+    if len(found_players) > 10:
+        await ctx.respond("Many players found. This might take a bit.", ephemeral=True)
     fetch_tasks = [bot.loop.create_task(player.fetch()) for player in found_players]
     players = await asyncio.gather(*fetch_tasks)
-    players = list(filter(lambda p:p.game.name == game, players))
+
+    if game is not None:
+        players = list(filter(lambda p:p.game.name == game, players))
     
     if not len(players):
         await ctx.respond("No player found.")

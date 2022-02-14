@@ -4,6 +4,8 @@ import aiohttp
 import json
 import asyncio
 
+from vrml.season import Season
+
 log = logging.getLogger(__name__)
 
 
@@ -58,35 +60,84 @@ async def request(route, **kwargs):
 
 
 async def player_search(name):
+    """Get data from endpoint `/Players/Search`.
+    Searches all leagues.
+    
+    Query
+        name: Player name to search for
+    """
     params = {"name": name}
     return await request(Route("GET", "/Players/Search"), params=params)
 
-async def get_game(name):
-    return await request(Route("GET", "/{game}", game=name))
+
+async def get_game(game):
+    """Get data from `/{game}`.
+    
+    URL params
+        game: Name of game (with omitted whitespaces)
+    """
+    return await request(Route("GET", "/{game}", game=game))
+
 
 async def get_player_detailed(player_id):
+    """Get data from `/Players/{player_id}/Detailed`
+    
+    URL params
+        player_id: ID of player to fetch data for.
+    """
     r = Route("GET", "/Players/{player_id}/Detailed", player_id=player_id)
     return await request(r)
 
 
+async def get_team(team_id):
+    """Get data from `/Teams/{team_id}`
+    
+    URL params
+        team_id: ID of team to fetch data for.
+    """
+    r = Route("GET", "/Teams/{team_id}", team_id=team_id)
+    return await request(r)
+
+
+async def search_team(game, name, season=None, region=None):
+    """Get data from `/{game}/Teams/Search`
+    
+    URL params
+        game: game name the team plays (omit whitespaces)
+    
+    Query params
+        name: Team name to search for.
+        season: `str` of season id or `Season` object.
+        region: Region the team plays in (`NA`, `EU`, `OCE`, or `none`).
+    """
+    r = Route("GET", "/{game}/Teams/Search", game=game)
+    query = {"name": name}
+    if season:
+        if isinstance(season, Season):
+            query["season"] = season.id
+        else:
+            query["season"] = season
+    if region:
+        query["region"] = region
+    return await request(r, params=query)
 
 
 
-async def main():
-    # loop = asyncio.get_event_loop()
-    # loop.run_until_complete()
-    r = Route("GET", "/{game}/Standings", game="EchoArena")
-    params = {
-        "region": "EU"
-    }
-    data = await request(r, params=params)
-    for dict in data:
-        for k, v in dict.items():
-            print(k, "    ", v)
+# async def main():
+#     # loop = asyncio.get_event_loop()
+#     # loop.run_until_complete()
+#     r = Route("GET", "/{game}/Standings", game="EchoArena")
+#     params = {
+#         "region": "EU"
+#     }
+#     data = await request(r, params=params)
+#     for dict in data:
+#         for k, v in dict.items():
+#             print(k, "    ", v)
 
-if __name__ == '__main__':
-    for i in range(20):
-        asyncio.run(main())
-        print("============================================================0")
+# if __name__ == '__main__':
+#     for i in range(20):
+#         asyncio.run(main())
+#         print("============================================================0")
 
 

@@ -1,5 +1,11 @@
+from discord import Embed
 from . import BASE_URL, http
 from .season import Season
+
+__all__ = (
+    "PartialGame",
+    "Game"
+)
 
 class PartialGame:
     def __init__(self, data) -> None:
@@ -7,20 +13,22 @@ class PartialGame:
         self.name = data.get("gameName", None)
         self.team_mode = data.get("teamMode", None)
         self.match_mode = data.get("matchMode", None)
-        self.url = None                                     # is set later
-        self.relative_url = data.get("url", None)
+        self.url = data.get("url", None)
         self.has_substitutes = data.get("hasSubstitutes", None)
         self.has_ties = data.get("hasTies", None)
         self.has_casters = data.get("hasCasters", None)
         self.has_cameraman = data.get("hasCameraman", None)
 
-        if self.relative_url is not None:
-            self.url = BASE_URL + self.relative_url
+        if self.url is not None:
+            self.url = BASE_URL + self.url
     
     async def fetch(self):
         "Return a full `Game` object."
         name = self.name.replace(" ", "")
         return http.get_game(name)
+    
+    def get_embed(self):
+        raise NotImplementedError
 
 
 class Game:
@@ -56,8 +64,16 @@ class Game:
             self.facebook = "https://www.facebook.com/" + self.facebook
         self.discord = game_data.get("discordInvite", None)
         if self.discord is not None:
-            self.discord_invite_url = f"https://discord.gg/" + self.discord
+            self.discord_invite_url = "https://discord.gg/" + self.discord
 
         self.current_season = Season(current_season_data)
 
+        self._short_name = self.name.replace(" ", "")
+    
+    def get_embed(self):
+        e = Embed()
 
+    async def search_team(self, name):
+        from .team import PartialTeam
+        data = await http.search_team(self._short_name, name)
+        return [PartialTeam(d) for d in data]
