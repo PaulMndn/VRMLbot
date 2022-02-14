@@ -1,5 +1,5 @@
 import discord
-from discord import Embed, Option
+from discord import Embed, Option, OptionChoice
 from discord.ext import commands
 from discord.ext.commands import Bot
 import asyncio
@@ -26,6 +26,9 @@ with open("bot.token", "r") as f:
 
 
 debug_guilds = [927322319691591680]
+game_names = ["Echo Arena", "Onward", "Pavlov",
+              "Snapshot", "Contractors", "Final Assult"]
+
 
 bot = Bot(debug_guilds=debug_guilds)
 
@@ -41,17 +44,16 @@ async def ping(ctx):
 
 @bot.slash_command()
 async def game(ctx,
-               game: Option(str, "game name", choices=["Echo Arena","Onward","Pavlov","Snapshot","Contractors","Final Assult"])):
+               game: Option(str, "game name", choices=game_names)):
     "Get general information of a game in VRML."
-    game = game.replace(" ", "")
     game: vrml.Game = await vrml.get_game(game)
     await ctx.respond(f"{game.name} ({game.id}): can be found here: <{game.url}>")
 
 
 @bot.slash_command()
 async def player(ctx,
-                        name: Option(str, "Name of the player"),
-                        game: Option(str, "game name", required=False, choices=["Echo Arena","Onward","Pavlov","Snapshot","Contractors","Final Assult"])):
+                 name: Option(str, "Name of the player"),
+                 game: Option(str, "Name of the game", required=False, choices=game_names)):
     await ctx.defer()   # buying some time
 
     found_players = await vrml.player_search(name)

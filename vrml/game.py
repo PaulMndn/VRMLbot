@@ -1,5 +1,6 @@
 from discord import Embed
 from . import BASE_URL, http
+from .utils import *
 from .season import Season
 
 __all__ = (
@@ -19,16 +20,18 @@ class PartialGame:
         self.has_casters = data.get("hasCasters", None)
         self.has_cameraman = data.get("hasCameraman", None)
 
+        self._short_name = short_game_names[self.name]
         if self.url is not None:
             self.url = BASE_URL + self.url
     
     async def fetch(self):
         "Return a full `Game` object."
-        name = self.name.replace(" ", "")
-        return http.get_game(name)
+        return http.get_game(self._short_name)
     
-    def get_embed(self):
-        raise NotImplementedError
+    async def search_team(self, name):
+        from .team import PartialTeam
+        data = await http.search_team(self._short_name, name)
+        return [PartialTeam(d) for d in data]
 
 
 class Game:
@@ -68,7 +71,7 @@ class Game:
 
         self.current_season = Season(current_season_data)
 
-        self._short_name = self.name.replace(" ", "")
+        self._short_name = short_game_names[self.name]
     
     def get_embed(self):
         e = Embed()

@@ -14,6 +14,7 @@ async def player_search(name):
     return [PartialPlayer(d) for d in data]
 
 async def get_game(name) -> Game:
+    name = short_game_names[name]
     data =  await http.get_game(name)
     return Game(data)
 
