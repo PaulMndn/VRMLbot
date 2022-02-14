@@ -1,9 +1,11 @@
 from .utils import *
 from . import http
-from .game import PartialGame, Game
 from .season import Season
-from .player import PartialPlayer, Player
 from .user import User
+from .game import PartialGame, Game
+from .match import Match
+from .player import PartialPlayer, Player
+from .team import PartialTeam, Team
 
 
 
