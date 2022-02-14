@@ -55,23 +55,20 @@ class Team:
         self.name = team_data.get("teamName", None)
         self.recruit_possible = team_data.get("recruitPossible", None)
         self.missing_gp_for_mmr = team_data.get("missingGPForMMR", None)
-        self._relative_logo_url = team_data.get("teamLogo", None)
-        self.logo_url = None
-        if self._relative_logo_url is not None:
-            self.logo_url = BASE_URL + self._relative_logo_url
+        self.logo_url = team_data.get("teamLogo", None)
+        if self.logo_url is not None:
+            self.logo_url = BASE_URL + self.logo_url
         self.region_id = team_data.get("regionID", None)
         self.region = team_data.get("region", None)
         
-        self._relative_fanart_url = team_data.get("fanart", None)
-        self.fanart_url = None
-        if self._relative_fanart_url is not None:
-            self.fanart_url = BASE_URL + self._relative_fanart_url
+        self.fanart_url = team_data.get("fanart", None)
+        if self.fanart_url is not None:
+            self.fanart_url = BASE_URL + self.fanart_url
         self.game_name = team_data.get("gameName", None)
         self.division = team_data.get("divisionName", None)
-        self._relative_division_logo_url = team_data.get("divisionLogo", None)
-        self.division_logo_url = None
-        if self._relative_division_logo_url is not None:
-            self.division_logo_url = BASE_URL + self._relative_division_logo_url
+        self.division_logo_url = team_data.get("divisionLogo", None)
+        if self.division_logo_url is not None:
+            self.division_logo_url = BASE_URL + self.division_logo_url
         self.games_played = team_data.get("gp", None)
         self.wins = team_data.get("w", None)
         self.ties = team_data.get("t", None)

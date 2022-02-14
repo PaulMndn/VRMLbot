@@ -77,4 +77,17 @@ async def player(ctx,
     await ctx.respond("", embeds=embeds)
 
 
+@bot.slash_command()
+async def team(ctx,
+               team: Option(str, "Team name to search for."),
+               game: Option(str, "The game the team plays.", choices=game_names)):
+    await ctx.respond("foobar")
+
+
+@bot.user_command(name="VRML Team")
+async def vrml_team(ctx, member):
+    await ctx.respond(f"Some info about {member}.")
+
+
+
 bot.run(token)

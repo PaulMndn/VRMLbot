@@ -14,10 +14,9 @@ class PartialPlayer:    # like from `/Players/Search`
     def __init__(self, data) -> None:
         self.id = data.get("id", None)
         self.name = data.get("name", None)
-        self._relative_logo_url = data.get("image", None)
-        self.logo_url = None
-        if self._relative_logo_url is not None:
-            self.logo_url = BASE_URL + self._relative_logo_url
+        self.logo_url = data.get("image", None)
+        if self.logo_url is not None:
+            self.logo_url = BASE_URL + self.logo_url
     
     async def fetch(self):
         data = await http.get_player_detailed(self.id)
@@ -33,10 +32,9 @@ class Player:       # like from `/Players/player_id/Detailed`
         self.user = User(user_data)
         self.id = player_data.get("playerID", None)
         self.name = player_data.get("playerName", None)
-        self._relative_logo_url = player_data.get("userLogo", None)
-        self.logo_url = None
-        if self._relative_logo_url is not None:
-            self.logo_url = BASE_URL + self._relative_logo_url
+        self.logo_url = player_data.get("userLogo", None)
+        if self.logo_url is not None:
+            self.logo_url = BASE_URL + self.logo_url
         self.game = PartialGame(player_data.get("game", {}))
 
 
@@ -51,11 +49,10 @@ class TeamPlayer:       # like from `/Team/team_id`
 
         self.id = data.get("playerID", None)
         self.name = data.get("playerName", None)
-        self._user_id = data.get("userID", None)
-        self._relative_logo_url = data.get("userLogo", None)
-        self.logo_url = None
-        if self._relative_logo_url is not None:
-            self.logo_url = BASE_URL+self._relative_logo_url
+        self.user_id = data.get("userID", None)
+        self.logo_url = data.get("userLogo", None)
+        if self.logo_url is not None:
+            self.logo_url = BASE_URL+self.logo_url
         self.country = data.get("country", None)
         self.nationality = data.get("nationality", None)
         self.stream_url = data.get("streamURL", None)
