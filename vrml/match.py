@@ -1,6 +1,9 @@
 from datetime import datetime
+import asyncio
 from . import BASE_URL
 from .team import PartialTeam
+from .set import Set
+from . import http
 
 __all__ = (
     "Match",
@@ -91,8 +94,16 @@ class Match:
         self.home_team = PartialTeam(home_team_data)
         self.away_team = PartialTeam(away_team_data)
 
+        self.sets = None
+        loop = asyncio.get_running_loop()
+        loop.create_task(self.fetch_sets())
+
     @property
     def scores_submitted(self):
         return self.home_team_submitted_scores and \
                self.away_team_submitted_scores
 
+    async def fetch_sets(self):
+        data = await http.get_match_sets(self.id)
+        self.sets = [Set(d) for d in data]
+        return self.sets

@@ -3,6 +3,7 @@ from . import http
 from .season import Season
 from .user import User
 from .game import PartialGame, Game
+from .set import Set
 from .match import Match
 from .player import PartialPlayer, Player
 from .team import PartialTeam, Team
