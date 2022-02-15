@@ -1,6 +1,7 @@
 from . import *
 from .user import User
 from .game import PartialGame
+from .bio import Bio
 from datetime import datetime, timedelta
 
 __all__ = (
@@ -36,6 +37,10 @@ class Player:       # like from `/Players/player_id/Detailed`
         if self.logo_url is not None:
             self.logo_url = BASE_URL + self.logo_url
         self.game = PartialGame(player_data.get("game", {}))
+
+        bio_history = player_data.get("bioHistory", [])
+        self.current_bio = Bio(bio_history[0])
+        self.bio_history = [Bio(d) for d in bio_history[1:]]
 
 
 class TeamPlayer:       # like from `/Team/team_id`
@@ -75,7 +80,7 @@ class TeamPlayer:       # like from `/Team/team_id`
 
     @team.setter
     def team(self, value):
-        if not isinstance(value, vrml.Team):
+        if not isinstance(value, Team):
             raise TypeError(f"Argument must be type <vrml.Team>. Not <{value.__class__.__name__}>")
         self._team = value
     
