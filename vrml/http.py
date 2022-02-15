@@ -122,6 +122,11 @@ async def search_team(game, name, season=None, region=None):
     return await request(r, params=query)
 
 
+async def get_match_sets(match_id):
+    r = Route("GET", "/Matches/{match_id}/Sets", match_id=match_id)
+    return await request(r)
+
+
 
 # async def main():
 #     # loop = asyncio.get_event_loop()
