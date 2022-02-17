@@ -1,6 +1,6 @@
 from datetime import datetime
 import asyncio
-from . import BASE_URL
+from . import BASE_URL, short_game_names
 from .team import PartialTeam
 from .set import Set
 from . import http
@@ -73,7 +73,7 @@ class Match:
         self.is_challenge = data.get("isChallenge", None)
         self.is_cup = data.get("isCup", None)
         self.date_scheduled = data.get("dateScheduledUTC", None)
-        if self.date_scheduled is not None:
+        if self.date_scheduled is not None or self.date_scheduled != "TBD":
             aware_date = self.date_scheduled + "+00:00"
             self.date_scheduled = datetime.fromisoformat(aware_date)
         self.date_scheduled_user = data.get("dateScheduledUser", None)
@@ -98,12 +98,57 @@ class Match:
         loop = asyncio.get_running_loop()
         loop.create_task(self.fetch_sets())
 
+        self.game_name = None
+
     @property
     def scores_submitted(self):
         return self.home_team_submitted_scores and \
                self.away_team_submitted_scores
 
+    @property
+    def url(self):
+        if self.game_name is None:
+            return None
+        return BASE_URL+f"/{short_game_names[self.game_name]}/Match/{self.id}"
+
     async def fetch_sets(self):
         data = await http.get_match_sets(self.id)
         self.sets = [Set(d) for d in data]
         return self.sets
+    
+    def ordered_str(self, team_id):
+        "String representation, but ordered to put the specified team first"
+        line = []
+        if self.is_scheduled:
+            line.append(f"<t:{int(self.date_scheduled.timestamp())}:d>")
+        else:
+            line.append(f"TBD")
+        
+        if self.scores_submitted:
+            if team_id == self.home_team.id:
+                line.append(self.home_team.name)
+                line.append(f"{self.home_score} - {self.away_score}")
+                line.append(self.away_team.name)
+            elif team_id == self.away_team.id:
+                line.append(self.away_team.name)
+                line.append(f"{self.away_score} - {self.home_score}")
+                line.append(self.home_team.name)
+            else:
+                line.append("*error*")
+        else:
+            if team_id == self.home_team.id:
+                line.append(f"{self.home_team.name} - {self.away_team.name}")
+            elif team_id == self.away_team.id:
+                line.append(f"{self.away_team.name} - {self.home_team.name}")
+            else:
+                line.append("*error*")
+        
+        links = f'[[match]]({self.url} "Match page")'
+        if self.vod_url:
+            links += f' [[VOD]]({self.vod_url} "Match VOD")'
+        line.append(links)
+        
+        return " ".join(line)
+
+
+

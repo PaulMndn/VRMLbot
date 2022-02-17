@@ -81,12 +81,39 @@ async def player(ctx,
 async def team(ctx,
                team: Option(str, "Team name to search for."),
                game: Option(str, "The game the team plays.", choices=game_names)):
-    await ctx.respond("foobar")
+    "Get details on a specific team."
+    await ctx.defer()
+    game = await vrml.get_game(game)
+    teams = await game.search_team(team)
+    
+    if len(teams) == 0:
+        await ctx.respond("No teams found.")
+        return
+    
+    exact_team = next(filter(lambda t: t.name.lower() == team.lower(), teams), None)
+    if exact_team is not None:
+        team = await exact_team.fetch()
+        await ctx.respond("", embed=team.get_embed())
+    else:
+        if len(teams) > 10:
+            s = "More than 10 teams found. Please be more specific.\n" \
+                f"Found: {', '.join(t.name for t in teams)}"
+            if len(s) > 2000:
+                # cut off everything above the 2000 char limit
+                s = s[:1996] + " ..."
+            await ctx.respond(s)
+            return
+        
+        await ctx.respond(f"Fetching {len(teams)} teams.", delete_after=5)
+        tasks = [bot.loop.create_task(t.fetch()) for t in teams]
+        teams = await asyncio.gather(*tasks)
+        await ctx.respond(f"{len(teams)} teams found.", 
+                          embeds=[t.get_embed() for t in teams])
 
 
-@bot.user_command(name="VRML Team")
-async def vrml_team(ctx, member):
-    await ctx.respond(f"Some info about {member}.")
+# @bot.user_command(name="VRML Team")
+# async def vrml_team(ctx, member):
+#     await ctx.respond(f"Some info about {member}.")
 
 
 

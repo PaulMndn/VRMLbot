@@ -80,6 +80,7 @@ class TeamPlayer:       # like from `/Team/team_id`
 
     @team.setter
     def team(self, value):
+        from .team import Team
         if not isinstance(value, Team):
             raise TypeError(f"Argument must be type <vrml.Team>. Not <{value.__class__.__name__}>")
         self._team = value
@@ -87,9 +88,9 @@ class TeamPlayer:       # like from `/Team/team_id`
     @property
     def discord_team_role(self):
         match self._discord_team_role_id:
-            case "1":
+            case 1:
                 return "Captain"
-            case "2":
+            case 2:
                 return "Co-Captain"
             case _:
                 return None

@@ -1,4 +1,5 @@
-from . import BASE_URL
+from discord import Embed
+from . import BASE_URL, short_game_names
 from . import http
 from .season import Season
 from .player import TeamPlayer
@@ -48,7 +49,7 @@ class Team:
         team_data = data.pop("team", {})
         self.season = Season(data.pop("season", {}))
         season_map_stats_data = data.pop("seasonStatsMaps", [])
-        season_matchs_data =  data.pop("seasonMatches", [])
+        season_matches_data =  data.pop("seasonMatches", [])
         ex_members_data = data.pop("exMembers", [])
 
         self.id = team_data.get("teamID", None)
@@ -59,7 +60,7 @@ class Team:
         if self.logo_url is not None:
             self.logo_url = BASE_URL + self.logo_url
         self.region_id = team_data.get("regionID", None)
-        self.region = team_data.get("region", None)
+        self.region = team_data.get("regionName", None)
         
         self.fanart_url = team_data.get("fanart", None)
         if self.fanart_url is not None:
@@ -101,8 +102,8 @@ class Team:
         
         self.seasons_played = [Season(d) for d in team_data.get("seasonsPlayed", []) ]
         self.players = [TeamPlayer(d) for d in team_data.get("players", []) ]
-        for p in self.players:
-            p.team = self
+        # for p in self.players:
+        #     p.team = self
         
         bio = team_data.get("bio", {})
         self.bio = bio.get("bioInfo", None)
@@ -114,7 +115,56 @@ class Team:
 
         self.map_stats = [MapStats(d) for d in season_map_stats_data]
 
-        self.matches = [Match(d) for d in season_matchs_data]     # TODO: to implement from season_matches_data
+        self.matches = [Match(d) for d in season_matches_data]     # TODO: to implement from season_matches_data
         self.ex_memers = [TeamPlayer(d) for d in ex_members_data]
 
+        self.url = BASE_URL \
+                   + f"/{short_game_names[self.game_name]}/Teams/{self.id}"
+        
+        for match in self.matches + self.upcoming_matches:
+            match.game_name = self.game_name    # set game_name for match.url
 
+    def get_embed(self):
+        "Return a `discord.Embed` object with details of the team."
+        e = Embed(title=self.name,
+                  url=self.url)
+        e.set_author(name=self.division, icon_url=self.division_logo_url)
+        e.description = f"Rank {self.rank_regional}\n" \
+                        f"MMR: {self.mmr}\n" \
+                        f"Region: {self.region}"
+        e.set_thumbnail(url=self.logo_url)
+        
+        s = "\n".join(f"`{p.name}` {p.discord_team_role if p.discord_team_role else ''}" 
+                      for p in self.players)
+        e.add_field(name="Players", 
+                    value= s if s else "No players on that team", 
+                    inline=False)
+        s = "\n".join([m.ordered_str(self.id) for m in self.upcoming_matches])
+        e.add_field(name="Upcoming matches",
+                    value=s if s != "" else "No upcoming matches", 
+                    inline=False)
+        
+        # handle lenght limit of 1024 chars in field values
+        match_lines = [m.ordered_str(self.id) for m in self.matches]
+        match_blocks = []
+        block = ""
+        for line in match_lines:
+            new_block = "\n".join([block, line])
+            if len(new_block) > 1024:
+                match_blocks.append(block)
+                block = line
+                continue
+            block = new_block
+        match_blocks.append(block)  # append last block to list
+        
+        e.add_field(name="Past matches", 
+                    value=match_blocks[0] if match_blocks[0] else "No matches yet",
+                    inline=False)
+        
+        for block in match_blocks[1:]:
+            e.add_field(name="\u200b",  # zero width space, doesn't render
+                        value=block,
+                        inline=False)
+
+        e.set_footer(text=self.season.name)
+        return e
