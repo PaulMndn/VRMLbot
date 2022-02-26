@@ -1,5 +1,5 @@
 from discord import Embed
-from . import BASE_URL, short_game_names
+from .utils import BASE_URL, short_game_names, dc_escape
 from . import http
 from .season import Season
 from .player import TeamPlayer
@@ -126,7 +126,7 @@ class Team:
 
     def get_embed(self):
         "Return a `discord.Embed` object with details of the team."
-        e = Embed(title=self.name,
+        e = Embed(title=dc_escape(self.name),
                   url=self.url)
         e.set_author(name=self.division, icon_url=self.division_logo_url)
         e.description = f"Rank {self.rank_regional}\n" \
@@ -134,18 +134,20 @@ class Team:
                         f"Region: {self.region}"
         e.set_thumbnail(url=self.logo_url)
         
-        s = "\n".join(f"`{p.name}` {p.discord_team_role if p.discord_team_role else ''}" 
+        s = "\n".join(f"{dc_escape(p.name)} " \
+                      f"{p.discord_team_role if p.discord_team_role else ''}"
                       for p in self.players)
         e.add_field(name="Players", 
-                    value= s if s else "No players on that team", 
+                    value= s or "No players on that team", 
                     inline=False)
-        s = "\n".join([m.ordered_str(self.id) for m in self.upcoming_matches])
+        s = "\n".join([dc_escape(m.ordered_str(self.id)) 
+                       for m in self.upcoming_matches])
         e.add_field(name="Upcoming matches",
-                    value=s if s != "" else "No upcoming matches", 
+                    value=s or "No upcoming matches", 
                     inline=False)
         
         # handle lenght limit of 1024 chars in field values
-        match_lines = [m.ordered_str(self.id) for m in self.matches]
+        match_lines = [dc_escape(m.ordered_str(self.id)) for m in self.matches]
         match_blocks = []
         block = ""
         for line in match_lines:

@@ -10,3 +10,13 @@ short_game_names = {
     "Contractors": "Contractors",
     "Final Assault": "FinalAssault"
 }
+
+def dc_escape(string: str):
+    "Return the string with all Discord message formatting characters escaped."
+    return string.translate(str.maketrans({"*": "\*",
+                                        "_": "\_",
+                                        "`": "\`",
+                                        "<": "\<",
+                                        ">": "\>",
+                                        "|": "\|",
+                                        "~": "\~"}))

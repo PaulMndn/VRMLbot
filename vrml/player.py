@@ -28,7 +28,7 @@ class Player:       # like from `/Players/player_id/Detailed`
     def __init__(self, data) -> None:
         user_data = data.pop("user", {})
         player_data = data.pop("thisGame", {})
-        connoisseur_data = data     # remaining data is connoisseur related. This is not used yet
+        # connoisseur_data = data     # remaining data is connoisseur related. This is not used yet
 
         self.user = User(user_data)
         self.id = player_data.get("playerID", None)
@@ -91,7 +91,7 @@ class TeamPlayer:       # like from `/Team/team_id`
             case 1:
                 return "Captain"
             case 2:
-                return "Co-Captain"
+                return "Co-captain"
             case _:
                 return None
     
