@@ -27,7 +27,7 @@ with open("bot.token", "r") as f:
 
 debug_guilds = [927322319691591680]
 game_names = ["Echo Arena", "Onward", "Pavlov",
-              "Snapshot", "Contractors", "Final Assult"]
+              "Snapshot", "Contractors", "Final Assault"]
 
 
 bot = Bot(debug_guilds=debug_guilds)
@@ -35,6 +35,21 @@ bot = Bot(debug_guilds=debug_guilds)
 @bot.event
 async def on_ready():
     log.info("Bot initialized and logged in.")
+
+
+@bot.slash_command()
+async def about(ctx):
+    'About this bot...'
+    s = f"This is an unofficial Discord integration for VRML. " \
+        f"Developed and maintained by PartyPaul#7757.\n\n" \
+        f"**This is an alpha version** and will be expanded with functionality continuously.\n" \
+        f"If you found a bug or have a request please DM me or submit them " \
+        f"at <https://github.com/PaulMndn/VRMLbot/issues>.\n\n" \
+        f"Features that are currently in development include:\n" \
+        f"    - `standings` command for (regional) standings of a league\n" \
+        f"    - `game` command to get info about a league in VRML\n" \
+        f"    - role management to add team roles to server members\n"
+    await ctx.respond(s)
 
 
 @bot.slash_command()
@@ -74,7 +89,7 @@ async def player(ctx,
         e = Embed(title=f"`{player.name}`", description=f"`{player.user.discord_tag}`")
         e.set_thumbnail(url=player.logo_url)
         embeds.append(e)
-    await ctx.respond("", embeds=embeds)
+    await ctx.respond("This will be expanded soon.", embeds=embeds)
 
 
 @bot.slash_command()
@@ -104,7 +119,7 @@ async def team(ctx,
             await ctx.respond(s)
             return
         
-        await ctx.respond(f"Fetching {len(teams)} teams.", delete_after=5)
+        await ctx.respond(f"Fetching {len(teams)} teams.")
         tasks = [bot.loop.create_task(t.fetch()) for t in teams]
         teams = await asyncio.gather(*tasks)
         await ctx.respond(f"{len(teams)} teams found.", 

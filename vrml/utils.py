@@ -8,5 +8,5 @@ short_game_names = {
     "Pavlov": "Pavlov",
     "Snapshot": "Snapshot",
     "Contractors": "Contractors",
-    "Final Assult": "FinalAssult"
+    "Final Assault": "FinalAssault"
 }
