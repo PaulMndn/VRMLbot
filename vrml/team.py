@@ -124,7 +124,7 @@ class Team:
         for match in self.matches + self.upcoming_matches:
             match.game_name = self.game_name    # set game_name for match.url
 
-    def get_embed(self):
+    def get_embed(self, match_links=False, vod_links=True):
         "Return a `discord.Embed` object with details of the team."
         e = Embed(title=dc_escape(self.name),
                   url=self.url)
@@ -134,20 +134,23 @@ class Team:
                         f"Region: {self.region}"
         e.set_thumbnail(url=self.logo_url)
         
-        s = "\n".join(f"{dc_escape(p.name)} " \
-                      f"{p.discord_team_role if p.discord_team_role else ''}"
-                      for p in self.players)
+        s = "\n".join(( ('(' if p.is_cooldown else '')
+                        + dc_escape(p.name)
+                        + (')' if p.is_cooldown else '')
+                        + (f" `{p.discord_team_role}`" if p.discord_team_role else '')
+                        for p in self.players))
         e.add_field(name="Players", 
                     value= s or "No players on that team", 
                     inline=False)
-        s = "\n".join([dc_escape(m.ordered_str(self.id)) 
+        s = "\n".join([m.ordered_str(self.id, match_links, vod_links)
                        for m in self.upcoming_matches])
         e.add_field(name="Upcoming matches",
                     value=s or "No upcoming matches", 
                     inline=False)
         
         # handle lenght limit of 1024 chars in field values
-        match_lines = [dc_escape(m.ordered_str(self.id)) for m in self.matches]
+        match_lines = [m.ordered_str(self.id, match_links, vod_links) 
+                       for m in self.matches]
         match_blocks = []
         block = ""
         for line in match_lines:
