@@ -116,7 +116,7 @@ class Match:
         self.sets = [Set(d) for d in data]
         return self.sets
     
-    def ordered_str(self, team_id):
+    def ordered_str(self, team_id, match_link=False, vod_link=True):
         "String representation, but ordered to put the specified team first"
         line = []
         if self.is_scheduled:
@@ -127,11 +127,11 @@ class Match:
         if self.scores_submitted:
             if team_id == self.home_team.id:
                 line.append(self.home_team.name)
-                line.append(f"{self.home_score} - {self.away_score}")
+                line.append(f"{self.home_score}-{self.away_score}")
                 line.append(self.away_team.name)
             elif team_id == self.away_team.id:
                 line.append(self.away_team.name)
-                line.append(f"{self.away_score} - {self.home_score}")
+                line.append(f"{self.away_score}-{self.home_score}")
                 line.append(self.home_team.name)
             else:
                 line.append("*error*")
@@ -143,8 +143,10 @@ class Match:
             else:
                 line.append("*error*")
         
-        links = f'[[match]]({self.url} "Match page")'
-        if self.vod_url:
+        links = ""
+        if match_link:
+            links += f'[[match]]({self.url} "Match page")'
+        if vod_link and self.vod_url:
             links += f' [[VOD]]({self.vod_url} "Match VOD")'
         line.append(links)
         

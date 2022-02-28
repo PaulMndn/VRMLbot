@@ -13,10 +13,12 @@ short_game_names = {
 
 def dc_escape(string: str):
     "Return the string with all Discord message formatting characters escaped."
+    if string is None:
+        string = ""
     return string.translate(str.maketrans({"*": "\*",
-                                        "_": "\_",
-                                        "`": "\`",
-                                        "<": "\<",
-                                        ">": "\>",
-                                        "|": "\|",
-                                        "~": "\~"}))
+                                           "_": "\_",
+                                           "`": "\`",
+                                           "<": "\<",
+                                           ">": "\>",
+                                           "|": "\|",
+                                           "~": "\~"}))

@@ -1,8 +1,10 @@
-from . import *
+from .utils import BASE_URL, dc_escape
 from .user import User
 from .game import PartialGame
 from .bio import Bio
+from . import http
 from datetime import datetime, timedelta
+from discord import Embed
 
 __all__ = (
     "PartialPlayer",
@@ -38,9 +40,17 @@ class Player:       # like from `/Players/player_id/Detailed`
             self.logo_url = BASE_URL + self.logo_url
         self.game = PartialGame(player_data.get("game", {}))
 
+        self.url = f"{self.game.url}/{self.id}"
+
         bio_history = player_data.get("bioHistory", [])
         self.current_bio = Bio(bio_history[0])
         self.bio_history = [Bio(d) for d in bio_history[1:]]
+    
+    def get_embed(self):
+        e = Embed(name=dc_escape(self.name),
+                  url=self.url)
+        e.description = f"Plays {self.game.name}\n" \
+                        f"Team: {dc_escape(self.current_bio.team_name)}"
 
 
 class TeamPlayer:       # like from `/Team/team_id`

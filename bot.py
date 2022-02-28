@@ -95,7 +95,9 @@ async def player(ctx,
 @bot.slash_command()
 async def team(ctx,
                team: Option(str, "Team name to search for."),
-               game: Option(str, "The game the team plays.", choices=game_names)):
+               game: Option(str, "The game the team plays.", choices=game_names),
+               match_links: Option(bool, name="match-links", description="Include match links (Default: false)")=False,
+               vod_links: Option(bool, name="vod-links", description="Include VOD links if exists (Default: true)")=True):
     "Get details on a specific team."
     await ctx.defer()
     game = await vrml.get_game(game)
@@ -108,7 +110,7 @@ async def team(ctx,
     exact_team = next(filter(lambda t: t.name.lower() == team.lower(), teams), None)
     if exact_team is not None:
         team = await exact_team.fetch()
-        await ctx.respond("", embed=team.get_embed())
+        await ctx.respond("", embed=team.get_embed(match_links, vod_links))
     else:
         if len(teams) > 10:
             s = "More than 10 teams found. Please be more specific.\n" \
@@ -123,7 +125,8 @@ async def team(ctx,
         tasks = [bot.loop.create_task(t.fetch()) for t in teams]
         teams = await asyncio.gather(*tasks)
         await ctx.respond(f"{len(teams)} teams found.", 
-                          embeds=[t.get_embed() for t in teams])
+                          embeds=[t.get_embed(match_links, vod_links)
+                                  for t in teams])
 
 
 # @bot.user_command(name="VRML Team")
