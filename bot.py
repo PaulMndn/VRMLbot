@@ -10,19 +10,20 @@ import vrml
 from lib.guild import Guild
 
 
+config = Config()
+
 logging.getLogger("discord").level=logging.INFO
 handler = RotatingFileHandler(filename="./log/VRMLbot.log",
                               backupCount=3,
                               maxBytes=100 * 1024,
                               encoding="utf-8")
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.DEBUG if config.dev else logging.INFO,
                     handlers=[handler],
                     format="{asctime} - {levelname:<8} - {name}: {message}",
                     style="{")
 log = logging.getLogger("main")
 
 
-config = Config()
 debug_guilds = [927322319691591680] if config.dev else None
 game_names = ["Echo Arena", "Onward", "Pavlov",
               "Snapshot", "Contractors", "Final Assault"]
@@ -102,8 +103,7 @@ async def set_game(ctx,
 async def game(ctx,
                game: Option(str, "game name", choices=game_names)=None):
     "Get general information about a league in VRML."
-    if game is None:
-        game = guilds[ctx.guild_id].default_game
+    game = game or guilds[ctx.guild_id].default_game
     if game is None:
         # no game given and no default set
         await ctx.respond(
@@ -118,14 +118,13 @@ async def game(ctx,
 @bot.slash_command()
 async def player(ctx,
                  name: Option(str, "Name of the player"),
-                 game: Option(str, "Name of the game/league", choices=["Any"]+game_names)=None):
+                 game: Option(str, "Name of the game/league to search, all leagues are searched if omitted.", choices=["Any"]+game_names)=None):
     """Search for an active player."""
     await ctx.defer()   # buying some time
-    match game:
-        case None:
-            game = guilds[ctx.guild_id].default_game
-        case "Any":
-            game = None
+
+    game = game or guilds[ctx.guild_id].default_game
+    if game == "Any":
+        game = None
     
     players = await vrml.player_search(name)
 
@@ -183,12 +182,11 @@ async def team(ctx,
     "Get details on a specific team."
     await ctx.defer()
 
-    if game is None:
-        game = guilds[ctx.guild_id].default_game
+    game = game or guilds[ctx.guild_id].default_game
     if game is None:
         ctx.respond(
             "Please spefify a game to search for. \n"
-            "You may set a default game for this server with `/set game`",
+            "You can set a default game for this server with `/set game`",
             ephemeral=True)
         return
     
