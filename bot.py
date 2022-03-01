@@ -14,8 +14,8 @@ config = Config()
 
 logging.getLogger("discord").level=logging.INFO
 handler = RotatingFileHandler(filename="./log/VRMLbot.log",
-                              backupCount=3,
-                              maxBytes=100 * 1024,
+                              backupCount=4,
+                              maxBytes=1 * 1024 * 1024,
                               encoding="utf-8")
 logging.basicConfig(level=logging.DEBUG if config.dev else logging.INFO,
                     handlers=[handler],
