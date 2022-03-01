@@ -40,17 +40,41 @@ class Player:       # like from `/Players/player_id/Detailed`
             self.logo_url = BASE_URL + self.logo_url
         self.game = PartialGame(player_data.get("game", {}))
 
-        self.url = f"{self.game.url}/{self.id}"
+        self.url = f"{self.game.url}/Players/{self.id}"
 
+        self.bio_current = Bio(player_data.get("bioCurrent", {}))
         bio_history = player_data.get("bioHistory", [])
-        self.current_bio = Bio(bio_history[0])
-        self.bio_history = [Bio(d) for d in bio_history[1:]]
-    
+        try:
+            self.bio_history = [Bio(d) for d in bio_history[1:]]
+        except IndexError:
+            self.bio_history = []
+        
+        self.team = None
+        if self.bio_current.team_id is not None:
+            from .team import PartialTeam
+            self.team = PartialTeam(player_data.get("bioCurrent",{}))
+        
     def get_embed(self):
-        e = Embed(name=dc_escape(self.name),
+        e = Embed(title=dc_escape(self.name),
                   url=self.url)
-        e.description = f"Plays {self.game.name}\n" \
-                        f"Team: {dc_escape(self.current_bio.team_name)}"
+        d = (f"Team: {self.team.name if self.team else '*not on a team*'}\n"
+             f"Discord handle: `{self.user.discord_tag}`\n"
+             f"Plays from: {self.user.country or 'Not specified'}\n"
+             f"Nationality: {self.user.nationality or 'Not specified'}\n"
+             f"\n{self.bio_current.honours_mention or ''}")
+        e.description = d
+        e.set_thumbnail(url=self.logo_url)
+        e.set_footer(text=f"Plays {self.game.name}\nJoined VRML on")
+        e.timestamp = self.user.date_joined
+
+        s = "\n".join(
+            f"{b.season.name} | {b.team_name} | {b.division} | MMR: {b.mmr}"
+            for b in self.bio_history
+        )
+        e.add_field(name="Teams history",
+                    value=s or "No prior teams")
+        
+        return e
 
 
 class TeamPlayer:       # like from `/Team/team_id`
@@ -105,7 +129,7 @@ class TeamPlayer:       # like from `/Team/team_id`
             case _:
                 return None
     
-    async def fetch_player(self):
+    async def fetch(self):
         data = await http.get_player_detailed(self.id)
         return Player(data)
 
