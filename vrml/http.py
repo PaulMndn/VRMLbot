@@ -34,11 +34,11 @@ async def request(route, **kwargs):
     async with aiohttp.ClientSession() as session:
         for tries in range(5):
             async with session.request(method, url, **kwargs) as r:
-                data = json.loads(await r.text(encoding="utf-8"))
-
+                log.debug(f"{method} {url} has returned {r.status}")
                 # request successfull, return json data
                 if r.status == 200:
-                    log.debug("%s %s has returned %s", method, url, r.status)
+                    data = json.loads(await r.text(encoding="utf-8"))
+                    log.debug(f"{method} {url} has recieved {data}")
                     return data
                 
                 # rate limited, wait and try again if tries left
@@ -53,6 +53,8 @@ async def request(route, **kwargs):
                     log.debug("Done waiting for rate limit. Retrying...")
                     
                     continue
+                
+                log.warning(f"Request came back with status {r.status} {r.reason}. Trying again")
 
         # ran out of retries
         raise HTTPException(f"{route.method} {route.url} with querry params {kwargs} ran out of retries.")
