@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.DEBUG if config.dev else logging.INFO,
 log = logging.getLogger("main")
 
 
-debug_guilds = [927322319691591680] if config.dev else None
+debug_guilds = config.debug_guilds if config.dev else None
 game_names = ["Echo Arena", "Onward", "Pavlov",
               "Snapshot", "Contractors", "Final Assault"]
 guilds = {}

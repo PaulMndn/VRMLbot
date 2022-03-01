@@ -15,4 +15,5 @@ class Config:
         
         self.token = self._data.get("token", None)
         self.dev = self._data.get("dev", None)
+        self.debug_guilds = self._data.get("debug_guilds", None)
 
