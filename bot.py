@@ -5,8 +5,9 @@ from discord.ext.commands import Bot
 import asyncio
 import logging
 from logging.handlers import RotatingFileHandler
-
+from lib.config import Config
 import vrml
+from lib.guild import Guild
 
 
 logging.getLogger("discord").level=logging.INFO
@@ -21,20 +22,34 @@ logging.basicConfig(level=logging.DEBUG,
 log = logging.getLogger("main")
 
 
-with open("bot.token", "r") as f:
-    token = f.read().strip()
-
-
-debug_guilds = [927322319691591680]
+config = Config()
+debug_guilds = [927322319691591680] if config.dev else None
 game_names = ["Echo Arena", "Onward", "Pavlov",
               "Snapshot", "Contractors", "Final Assault"]
-
+guilds = {}
 
 bot = Bot(debug_guilds=debug_guilds)
 
+
+def init():
+    for g in bot.guilds:
+        guilds[g.id] = (Guild(g.id))
+
+
 @bot.event
 async def on_ready():
+    init()
     log.info("Bot initialized and logged in.")
+
+
+@bot.event
+async def on_guild_join(guild):
+    guilds[guild.id] = (Guild(guild.id))
+
+@bot.event
+async def on_guild_remove(guild):
+    if guild.id in guilds:
+        del guilds[guild.id]
 
 
 @bot.slash_command()
@@ -57,49 +72,126 @@ async def ping(ctx):
     await ctx.respond("Pong!")
 
 
+set = bot.create_group(name="set")
+
+@set.command(name="game")
+async def set_game(ctx, 
+                   game: Option(str, description="Game/league name. None removes the server's default game", choices=game_names+["None"])):
+    """Set a default game/league for the commands."""
+    if not ctx.author.guild_permissions.manage_guild:
+        await ctx.respond(
+            "You need the `Manage Server` permission to use this command.\n"
+            "(This is the same permission required to add bots to a server.)",
+            ephemeral=True)
+        return
+    
+    if game == "None":
+        game = None
+    
+    guild = guilds[ctx.guild_id]
+    old = guild.default_game
+    guild.default_game = game
+    if old:
+        s = f"Changed default game for this server vom {old} to {game}."
+    else:
+        s = f"Set default game for this server to {game}."
+    await ctx.respond(s, ephemeral=True)
+
+
 @bot.slash_command()
 async def game(ctx,
-               game: Option(str, "game name", choices=game_names)):
-    "Get general information of a game in VRML."
+               game: Option(str, "game name", choices=game_names)=None):
+    "Get general information about a league in VRML."
+    if game is None:
+        game = guilds[ctx.guild_id].default_game
+    if game is None:
+        # no game given and no default set
+        await ctx.respond(
+            "Please specify a game as no default is set for this server.\n"
+            "You may set one using `/set game`")
+        return
+    
     game: vrml.Game = await vrml.get_game(game)
-    await ctx.respond(f"{game.name} ({game.id}): can be found here: <{game.url}>")
+    await ctx.respond(f"{game.name}: Can be found here: <{game.url}>")
 
 
 @bot.slash_command()
 async def player(ctx,
                  name: Option(str, "Name of the player"),
-                 game: Option(str, "Name of the game", required=False, choices=game_names)):
+                 game: Option(str, "Name of the game/league", choices=["Any"]+game_names)=None):
+    """Search for an active player."""
     await ctx.defer()   # buying some time
+    match game:
+        case None:
+            game = guilds[ctx.guild_id].default_game
+        case "Any":
+            game = None
+    
+    players = await vrml.player_search(name)
 
-    found_players = await vrml.player_search(name)
-    if len(found_players) > 10:
-        await ctx.respond("Many players found. This might take a bit.", ephemeral=True)
-    fetch_tasks = [bot.loop.create_task(player.fetch()) for player in found_players]
+    exact_players = list(filter(lambda x: x.name.lower() == name.lower(),
+                                players))
+    if exact_players:
+        tasks = [bot.loop.create_task(p.fetch()) for p in exact_players]
+        exact_players = await asyncio.gather(*tasks)
+        if game is not None:
+            exact_players = list(filter(lambda p: p.game.name == game, 
+                                        exact_players))
+        if exact_players:
+            await ctx.respond(
+                f"Found Players for {game if game else 'all leagues'}:",
+                embeds=[p.get_embed() for p in exact_players])
+            return
+    
+    if len(players) > 30:
+        s = (f"{len(players)} found. Please be more specific:\n"
+             + ", ".join(p.name for p in players))
+        if len(s) > 2000:   # string too long, shorten it
+            s = s[:1996] + " ..."
+        
+        await ctx.respond(s, ephemeral=True)
+        return
+    
+    if len(players) > 10:
+        await ctx.respond("This might take a bit.", 
+                          ephemeral=True)
+    fetch_tasks = [bot.loop.create_task(player.fetch()) 
+                   for player in players]
     players = await asyncio.gather(*fetch_tasks)
 
     if game is not None:
         players = list(filter(lambda p:p.game.name == game, players))
     
-    if not len(players):
-        await ctx.respond("No player found.")
+    if not players:
+        await ctx.respond("No players found.")
         return
     
-    embeds = []
-    for player in players:
-        e = Embed(title=f"`{player.name}`", description=f"`{player.user.discord_tag}`")
-        e.set_thumbnail(url=player.logo_url)
-        embeds.append(e)
-    await ctx.respond("This will be expanded soon.", embeds=embeds)
-
+    if len(players) > 10:
+        await ctx.respond(
+            "More then 10 players found. Please be more specific.\n"
+            f"Found players: {', '.join(p.name for p in players)}")
+        return
+    await ctx.respond(embeds=[p.get_embed() for p in players])
+    
 
 @bot.slash_command()
 async def team(ctx,
                team: Option(str, "Team name to search for."),
-               game: Option(str, "The game the team plays.", choices=game_names),
                match_links: Option(bool, name="match-links", description="Include match links (Default: false)")=False,
-               vod_links: Option(bool, name="vod-links", description="Include VOD links if exists (Default: true)")=True):
+               vod_links: Option(bool, name="vod-links", description="Include VOD links if exists (Default: true)")=True,
+               game: Option(str, "The game the team plays.", choices=game_names)=None):
     "Get details on a specific team."
     await ctx.defer()
+
+    if game is None:
+        game = guilds[ctx.guild_id].default_game
+    if game is None:
+        ctx.respond(
+            "Please spefify a game to search for. \n"
+            "You may set a default game for this server with `/set game`",
+            ephemeral=True)
+        return
+    
     game = await vrml.get_game(game)
     teams = await game.search_team(team)
     
@@ -135,4 +227,4 @@ async def team(ctx,
 
 
 
-bot.run(token)
+bot.run(config.token)

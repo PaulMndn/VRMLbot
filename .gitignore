@@ -1,5 +1,5 @@
 # Costom excludes
-bot.token
+config.json
 log/*
 data/*
 
@@ -20,7 +20,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/
 lib64/
 parts/
 sdist/
