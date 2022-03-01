@@ -58,10 +58,13 @@ class Player:       # like from `/Players/player_id/Detailed`
         e = Embed(title=dc_escape(self.name),
                   url=self.url)
         d = (f"Team: {self.team.name if self.team else '*not on a team*'}\n"
-             f"Discord handle: `{self.user.discord_tag}`\n"
+             f"Discord handle: `{self.user.discord_tag or 'Unlinked'}`\n"
              f"Plays from: {self.user.country or 'Not specified'}\n"
-             f"Nationality: {self.user.nationality or 'Not specified'}\n"
-             f"\n{self.bio_current.honours_mention or ''}")
+             f"Nationality: {self.user.nationality or 'Not specified'}\n")
+        if self.user.stream_url:
+            d += f"[Stream]({self.user.stream_url})\n" 
+        if self.bio_current.honours_mention:
+            d += f"**{self.bio_current.honours_mention}**"
         e.description = d
         e.set_thumbnail(url=self.logo_url)
         e.set_footer(text=f"Plays {self.game.name}\nJoined VRML on")
