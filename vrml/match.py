@@ -95,9 +95,6 @@ class Match:
         self.away_team = PartialTeam(away_team_data)
 
         self.sets = None
-        loop = asyncio.get_running_loop()
-        loop.create_task(self.fetch_sets())
-
         self.game_name = None
 
     @property
