@@ -56,15 +56,16 @@ async def on_guild_remove(guild):
 @bot.slash_command()
 async def about(ctx):
     'About this bot...'
-    s = f"This is an unofficial Discord integration for VRML. " \
-        f"Developed and maintained by PartyPaul#7757.\n\n" \
-        f"**This is an alpha version** and will be expanded with functionality continuously.\n" \
-        f"If you found a bug or have a request please DM me or submit them " \
-        f"at <https://github.com/PaulMndn/VRMLbot/issues>.\n\n" \
-        f"Features that are currently in development include:\n" \
-        f"    - `standings` command for (regional) standings of a league\n" \
-        f"    - `game` command to get info about a league in VRML\n" \
-        f"    - role management to add team roles to server members\n"
+    s = (f"This is an unofficial Discord integration for VRML. "
+         f"Developed and maintained by PartyPaul#7757.\n"
+         f"\n"
+         f"**This is an alpha version** and will be expanded with functionality continuously.\n"
+         f"If you found a bug or have a request please DM me or submit them "
+         f"at <https://github.com/PaulMndn/VRMLbot/issues>.\n"
+         f"\n"
+         f"Features that are currently in development include:\n"
+         f"    - `standings` command for (regional) standings of a league\n"
+         f"    - role management to add team roles to server members\n")
     await ctx.respond(s)
 
 
