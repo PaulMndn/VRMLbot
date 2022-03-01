@@ -113,7 +113,7 @@ async def game(ctx,
         return
     
     game: vrml.Game = await vrml.get_game(game)
-    await ctx.respond(f"{game.name}: Can be found here: <{game.url}>")
+    await ctx.respond(embed = game.get_embed())
 
 
 @bot.slash_command()

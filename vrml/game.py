@@ -1,7 +1,10 @@
+from re import A
+from tkinter import NE
 from discord import Embed
 from . import BASE_URL, http
 from .utils import *
 from .season import Season
+from .newspost import NewsPost
 
 __all__ = (
     "PartialGame",
@@ -37,12 +40,23 @@ class PartialGame:
 class Game:
     def __init__(self, data) -> None:
         game_data = data.pop("game", {})
-        new_posts_data = data.pop("newPosts", {})
+        news_posts_data = data.pop("newsPosts", {})
         next_matches_data = data.pop("nextMatches", {})
         current_season_data = data.pop("season", {})
 
         self.url = game_data.get("urlComplete", None)
-        self.by_url = game_data.get("gameByUrl", None)
+        self.game_by_url = game_data.get("gameByUrl", None)
+        self.game_by_image_url = game_data.get("gameByImage", None)
+        if self.game_by_image_url is not None:
+            self.game_by_image_url = (
+                f"{BASE_URL}/images/logos/gamesDev/"
+                f"{self.game_by_image_url}.png"
+            )
+        self.header_image_url = game_data.get("headerImage", None)
+        if self.header_image_url is not None:
+            self.header_image_url = (
+                f"{BASE_URL}/images/logos/home/{self.header_image_url}.png"
+            )
         self.id = game_data.get("gameID", None)
         self.name = game_data.get("gameName", None)
         self.team_mode = game_data.get("teamMode", None)
@@ -71,10 +85,41 @@ class Game:
 
         self.current_season = Season(current_season_data)
 
+        self.news_posts = [NewsPost(d) for d in news_posts_data]
+        for n in self.news_posts:
+            n.game = self
+
         self._short_name = short_game_names[self.name]
     
     def get_embed(self):
-        e = Embed()
+        e = Embed(title=self.name,
+                  url=self.url)
+        d = f"Current season: {self.current_season.name}"
+        e.description = d
+
+        s = (f"[Discord]({self.discord_invite_url})\n"
+             f"[YouTube]({self.youtube})\n"
+             f"[Twitter]({self.twitter})\n"
+             f"[Reddit]({self.reddit})\n"
+             f"[Facebook]({self.facebook})")
+        e.add_field(name="Socials", value=s, inline=False)
+        
+        lines = (f'<t:{int(n.date_submitted.timestamp())}:d> [{n.title}]({n.url})'
+                 for n in self.news_posts)
+        block = ""
+        for line in lines:
+            new_block = "\n".join([block, line])
+            if len(new_block) > 1024:
+                break
+            block = new_block
+        e.add_field(
+            name="Recent news posts",
+            value=block or "No recent posts.",
+            inline=False)
+        e.set_image(url=self.header_image_url)
+        return e
+        
+
 
     async def search_team(self, name):
         from .team import PartialTeam

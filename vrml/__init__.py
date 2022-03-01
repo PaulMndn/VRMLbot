@@ -7,6 +7,7 @@ from .set import Set
 from .match import Match
 from .player import PartialPlayer, Player
 from .team import PartialTeam, Team
+from .newspost import NewsPost
 
 
 
