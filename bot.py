@@ -1,3 +1,4 @@
+from turtle import title
 import discord
 from discord import Embed, Option, OptionChoice
 from discord.ext import commands
@@ -46,6 +47,46 @@ async def on_ready():
 @bot.event
 async def on_guild_join(guild):
     guilds[guild.id] = (Guild(guild.id))
+    e = Embed(title="Hello :wave:")
+    e.description = (
+        "Thanks for adding me to your server!\n"
+        "With me you can access [VRML](https://vrmasterleague.com) "
+        "data like player or team info directly from inside Discord.")
+    e.add_field(
+        name="Commands",
+        value=("You can use slash commands to interact with me. Just "
+               "type `/` in a chat on your server and the available "
+               "commands will show up.\n"
+               "It is recommended to **set a default game for your server**. "
+               "You can do so using the `/set game` command."),
+        inline=False
+    )
+    e.add_field(
+        name="Coming soon",
+        value=("Soon I will also be able to automatically manage team "
+               "roles and add and remove them as players join and "
+               "leave VRML teams. So you can directly ping a specific team "
+               "or see what team a player is playing on."),
+        inline=False
+    )
+    e.set_footer(text=f"Sent from {guild.name}")
+    owner = await bot.fetch_user(guild.owner_id)
+    try:
+        await owner.send(embed=e)
+    except discord.errors.Forbidden:
+        log.warning(
+            f"Can't send welcome message to guild owner {owner} in {guild.name}"
+        )
+        pass
+
+    if guild.system_channel is not None:
+        await guild.system_channel.send(
+            "Hello there :wave:\n"
+            "I have just been added to this server. With me you can access "
+            "VRML data like player or team info directly from inside Discord.\n"
+            "Give it a try! Just type `/` to see my available commands."
+        )
+
 
 @bot.event
 async def on_guild_remove(guild):
