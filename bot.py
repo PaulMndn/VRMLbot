@@ -205,32 +205,32 @@ async def player(ctx,
 
 @bot.slash_command()
 async def team(ctx,
-               team: Option(str, "Team name to search for."),
+               name: Option(str, "Team name to search for."),
                match_links: Option(bool, name="match-links", description="Include match links (Default: false)")=False,
                vod_links: Option(bool, name="vod-links", description="Include VOD links if exists (Default: true)")=True,
                game: Option(str, "The game the team plays.", choices=game_names)=None):
     "Get details on a specific team."
-    await ctx.defer()
-
     game = game or guilds[ctx.guild_id].default_game
     if game is None:
         await ctx.respond(
-            "Please spefify a game to search for. \n"
+            "Please spefify a game to search in. \n"
             "You can set a default game for this server with `/set game`",
             ephemeral=True)
         return
+
+    await ctx.defer()
     
     game = await vrml.get_game(game)
-    teams = await game.search_team(team)
+    teams = await game.search_team(name)
     
     if len(teams) == 0:
         await ctx.respond("No teams found.")
         return
     
-    exact_team = next(filter(lambda t: t.name.lower() == team.lower(), teams), None)
+    exact_team = next(filter(lambda t: t.name.lower() == name.lower(), teams), None)
     if exact_team is not None:
         team = await exact_team.fetch()
-        await ctx.respond("", embed=team.get_embed(match_links, vod_links))
+        await ctx.respond(embed=team.get_embed(match_links, vod_links))
     else:
         if len(teams) > 10:
             s = "More than 10 teams found. Please be more specific.\n" \
@@ -241,11 +241,9 @@ async def team(ctx,
             await ctx.respond(s)
             return
         
-        await ctx.respond(f"Fetching {len(teams)} teams.")
         tasks = [bot.loop.create_task(t.fetch()) for t in teams]
         teams = await asyncio.gather(*tasks)
-        await ctx.respond(f"{len(teams)} teams found.", 
-                          embeds=[t.get_embed(match_links, vod_links)
+        await ctx.respond(embeds=[t.get_embed(match_links, vod_links)
                                   for t in teams])
 
 
