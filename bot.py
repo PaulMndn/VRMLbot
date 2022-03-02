@@ -84,17 +84,19 @@ async def on_application_command_error(ctx, e):
 @bot.slash_command()
 async def about(ctx):
     'About this bot...'
-    s = (f"This is an unofficial Discord integration for VRML. "
-         f"Developed and maintained by PartyPaul#7757.\n"
-         f"\n"
-         f"**This is an alpha version** and will be expanded with functionality continuously.\n"
-         f"If you found a bug or have a request please DM me or submit them "
-         f"at <https://github.com/PaulMndn/VRMLbot/issues>.\n"
-         f"\n"
-         f"Features that are currently in development include:\n"
-         f"    - `standings` command for (regional) standings of a league\n"
-         f"    - searching players by their Discord tag\n"
-         f"    - role management to add team roles to server members\n")
+    s = ("This is an unofficial Discord integration for VRML. "
+         "Developed and maintained by PartyPaul#7757.\n"
+         "\n"
+         "Since the [VRML API](https://api.vrmasterleague.com) is still in "
+         "alpha, this bot is also an alpha version and will be expanded "
+         "with functionality continuously.\n"
+         "If you found a bug or have a request please DM me or submit them "
+         "at <https://github.com/PaulMndn/VRMLbot/issues>.\n"
+         "\n"
+         "Features that are currently in development include:\n"
+         "    - `standings` command for (regional) standings of a league\n"
+         "    - searching players by their Discord tag\n"
+         "    - role management to add team roles to server members\n")
     await ctx.respond(s)
 
 
