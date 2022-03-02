@@ -52,6 +52,34 @@ async def on_guild_remove(guild):
     if guild.id in guilds:
         del guilds[guild.id]
 
+@bot.event
+async def on_application_command_error(ctx, e):
+    original = e.original
+    params = {}
+    for o in ctx.interaction.data['options']:
+        params[o['name']] = o['value']
+    log.error(
+        f"An exception was raised during execution of command "
+        f"{ctx.command.name} with {params}")
+    log.error(f"Guild: {ctx.guild.name} ({ctx.guild_id}), author: {ctx.author}")
+    log.exception(f"{e.original.__class__.__name__}: {e.original}", 
+                  exc_info=original)
+    
+    if isinstance(original, vrml.http.HTTPServiceUnavailable):
+        await ctx.respond(
+            "VRML is not responding. This can happen during match "
+            "generation. Please try again later. \nIf the issue persists, "
+            "please contact the developer or report a bug. \n"
+            "Information on where to report bugs can be found in `/about`.",
+            ephemeral=True)
+    else:
+        await ctx.respond(
+            "An unknown error occured during execution of the command. "
+            "Please try again later. \nIf the issue persists, please contact "
+            "the deveoper or report a bug. Infos for how and where to do that "
+            "can be found in `/about`.",
+            ephemeral=True)
+
 
 @bot.slash_command()
 async def about(ctx):
@@ -65,11 +93,12 @@ async def about(ctx):
          f"\n"
          f"Features that are currently in development include:\n"
          f"    - `standings` command for (regional) standings of a league\n"
+         f"    - searching players by their Discord tag\n"
          f"    - role management to add team roles to server members\n")
     await ctx.respond(s)
 
 
-@bot.slash_command()
+@bot.slash_command(guild_ids=config.debug_guilds)
 async def ping(ctx):
     await ctx.respond("Pong!")
 
@@ -109,7 +138,7 @@ async def game(ctx,
         # no game given and no default set
         await ctx.respond(
             "Please specify a game as no default is set for this server.\n"
-            "You may set one using `/set game`")
+            "You can set one using `/set game`")
         return
     
     game: vrml.Game = await vrml.get_game(game)
@@ -138,13 +167,11 @@ async def player(ctx,
             exact_players = list(filter(lambda p: p.game.name == game, 
                                         exact_players))
         if exact_players:
-            await ctx.respond(
-                f"Found Players for {game if game else 'all leagues'}:",
-                embeds=[p.get_embed() for p in exact_players])
+            await ctx.respond(embeds=[p.get_embed() for p in exact_players])
             return
     
     if len(players) > 30:
-        s = (f"{len(players)} found. Please be more specific:\n"
+        s = (f"{len(players)} players found. Please be more specific:\n"
              + ", ".join(p.name for p in players))
         if len(s) > 2000:   # string too long, shorten it
             s = s[:1996] + " ..."
@@ -185,7 +212,7 @@ async def team(ctx,
 
     game = game or guilds[ctx.guild_id].default_game
     if game is None:
-        ctx.respond(
+        await ctx.respond(
             "Please spefify a game to search for. \n"
             "You can set a default game for this server with `/set game`",
             ephemeral=True)

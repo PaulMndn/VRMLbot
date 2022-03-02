@@ -10,7 +10,19 @@ log = logging.getLogger(__name__)
 
 
 class HTTPException(Exception):
-    pass
+    def __init__(self, msg, route, response) -> None:
+        pass
+
+class HTTPServiceUnavailable(HTTPException):
+    def __init__(self, route, response):
+        self.route = route
+        self.response = response
+        self.message = (f"{route.method} {route.url} is not available. Maybe "
+                        f"the server is overloaded. Status {response.status}")
+        super().__init__(self.message, route, response)
+    
+    def __str__(self):
+        return self.message
 
 
 class Route:
@@ -53,6 +65,10 @@ async def request(route, **kwargs):
                     log.debug("Done waiting for rate limit. Retrying...")
                     
                     continue
+
+                if r.status == 503:
+                    # service unavailable
+                    raise HTTPServiceUnavailable(route, r)
                 
                 log.warning(f"Request came back with status {r.status} {r.reason}. Trying again")
 
