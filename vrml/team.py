@@ -129,9 +129,13 @@ class Team:
         e = Embed(title=dc_escape(self.name),
                   url=self.url)
         e.set_author(name=self.division, icon_url=self.division_logo_url)
-        e.description = f"Rank {self.rank_regional}\n" \
-                        f"MMR: {self.mmr}\n" \
-                        f"Region: {self.region}"
+        e.description = (f"Rank {self.rank_regional}\n"
+                         f"MMR: {self.mmr}\n"
+                         f"Region: {self.region}\n")
+        e.description += (
+            f"[Discord server invite]({self.discord_invite_url})"
+            if self.discord_invite_url else ""
+        )
         e.set_thumbnail(url=self.logo_url)
         
         s = "\n".join(( ('(' if p.is_cooldown else '')
@@ -154,6 +158,9 @@ class Team:
         match_blocks = []
         block = ""
         for line in match_lines:
+            # replace html italics formatter with discord formatter
+            if "<i>" in line and "</i>" in line:
+                line = line.replace("<i>", "*").replace("</i>", "*")
             new_block = "\n".join([block, line])
             if len(new_block) > 1024:
                 match_blocks.append(block)
