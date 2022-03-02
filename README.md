@@ -50,6 +50,10 @@ Search for a team in a game/league. If no game and no default game is set, this 
 
 The result includes general team information, rostered players, upcoming matches and past matches of the current season.
 
+### `/ping`
+
+Ping the bot. This is only available in the debug guilds
+
 ## Features in development
 
 - A `/standings` command to get standings information for a game/league. This will inlude to see the standings around a specific rank and possibly team
