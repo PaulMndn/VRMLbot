@@ -1,14 +1,12 @@
 import discord
-from discord import Embed, Option, OptionChoice
-from discord.ext import commands
+from discord import Embed, Option
 from discord.ext.commands import Bot
 import asyncio
 import logging
 from logging.handlers import RotatingFileHandler
-from lib.config import Config
+
+from lib import AdminActions, Config, Guild, tasks
 import vrml
-from lib.guild import Guild
-from lib import tasks
 
 
 config = Config()
@@ -30,8 +28,9 @@ game_names = ["Echo Arena", "Onward", "Pavlov",
               "Snapshot", "Contractors", "Final Assault"]
 guilds = {}
 
-bot = Bot(debug_guilds=debug_guilds)
 
+bot = Bot(debug_guilds=debug_guilds)
+admin_actions = AdminActions(bot)
 
 def init():
     for g in bot.guilds:
@@ -121,6 +120,38 @@ async def on_application_command_error(ctx, e):
             "the deveoper or report a bug. Infos for how and where to do that "
             "can be found in `/about`.",
             ephemeral=True)
+
+
+@bot.event
+async def on_message(msg: discord.Message):
+    if msg.guild is not None or msg.author.id != config.admin_id:
+        return
+    
+    parts = msg.content.partition(" ")
+    cmd, _, content = parts
+    content = content.strip()
+
+    if cmd == "!help":
+        s = await admin_actions.help()
+        await msg.channel.send(s)
+
+    if cmd == "!msg_guilds":
+        count = await admin_actions.msg_guilds(content)
+        await msg.channel.send(f"Sent message to {count}/{len(bot.guilds)} guild(s).")
+
+    if cmd == "!msg_owners":
+        count = await admin_actions.msg_owners(content)
+        await msg.channel.send(f"Sent message to {count} guild owners")
+    
+    if cmd == "!msg_both":
+        count_guilds, count_owners = await admin_actions.msg_both(content)
+        s = f"Sent message to {count_guilds}/{len(bot.guilds)} guild(s)."
+        await msg.channel.send(s)
+        s = f"Sent message to {count_owners} guild owners"
+        await msg.channel.send(s)
+
+    if cmd == "!stats":
+        pass
 
 
 @bot.slash_command()
