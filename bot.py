@@ -1,4 +1,3 @@
-from turtle import title
 import discord
 from discord import Embed, Option, OptionChoice
 from discord.ext import commands
@@ -9,6 +8,7 @@ from logging.handlers import RotatingFileHandler
 from lib.config import Config
 import vrml
 from lib.guild import Guild
+from lib import tasks
 
 
 config = Config()
@@ -36,6 +36,7 @@ bot = Bot(debug_guilds=debug_guilds)
 def init():
     for g in bot.guilds:
         guilds[g.id] = (Guild(g.id))
+    tasks.start()
 
 
 @bot.event
@@ -97,7 +98,7 @@ async def on_guild_remove(guild):
 async def on_application_command_error(ctx, e):
     original = e.original
     params = {}
-    for o in ctx.interaction.data['options']:
+    for o in ctx.interaction.data.get('options',[]):
         params[o['name']] = o['value']
     log.error(
         f"An exception was raised during execution of command "
@@ -292,6 +293,13 @@ async def team(ctx,
 # async def vrml_team(ctx, member):
 #     await ctx.respond(f"Some info about {member}.")
 
+@bot.slash_command()
+async def all_players(ctx):
+    await ctx.defer()
+    game = guilds[ctx.guild_id].default_game
+    game = await vrml.get_game(game)
+    players = await game.fetch_players()
+    await ctx.respond(f"{len(players)} found.")
 
 
 bot.run(config.token)
