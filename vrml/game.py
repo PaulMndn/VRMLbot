@@ -1,10 +1,12 @@
-from re import A
-from tkinter import NE
 from discord import Embed
+import asyncio
 from . import BASE_URL, http
 from .utils import *
 from .season import Season
 from .newspost import NewsPost
+
+import logging
+log = logging.getLogger(__name__)
 
 __all__ = (
     "PartialGame",
@@ -125,3 +127,26 @@ class Game:
         from .team import PartialTeam
         data = await http.search_team(self._short_name, name)
         return [PartialTeam(d) for d in data]
+    
+    async def fetch_players(self):
+        from . import PartialPlayer
+        player_data = []
+        
+        first = await http.get_game_players(self._short_name)
+        player_data += first['players']
+        total = first['total']
+        per_req = first['nbPerPage']
+        
+        min_positions = list(range(per_req+1, total, per_req))
+        for i in range(0, len(min_positions), 5):
+            tasks = []
+            for pos in min_positions[i:i+5]:
+                tasks.append(asyncio.create_task(
+                    http.get_game_players(self._short_name, pos)
+                ))
+            data = await asyncio.gather(*tasks)
+            for d in data:
+                player_data += d['players']
+            log.debug(f"fetched {len(player_data)} player's data.")
+        
+        return [PartialPlayer(d) for d in player_data]
