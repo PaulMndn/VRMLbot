@@ -15,9 +15,17 @@ __all__ = (
 
 class PartialPlayer:    # like from `/Players/Search`
     def __init__(self, data) -> None:
-        self.id = data.get("id", None)
-        self.name = data.get("name", None)
-        self.logo_url = data.get("image", None)
+        self.id = data.get("playerID", None)
+        self.name = data.get("playerName", None)
+        self.logo_url = data.get("playerLogo", None)
+        
+        if self.id == None:
+            self.id = data.get("id", None)
+        if self.name == None:
+            self.name = data.get("name", None)
+        if self.logo_url == None:
+            self.logo_url = data.get("image", None)
+        
         if self.logo_url is not None:
             self.logo_url = BASE_URL + self.logo_url
     
