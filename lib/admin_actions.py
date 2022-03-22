@@ -1,4 +1,5 @@
 import asyncio
+import discord
 
 class AdminActions:
     def __init__(self, bot):
@@ -52,4 +53,18 @@ class AdminActions:
         return tuple(counts)
 
     async def stats(self):
-        pass
+        return {
+            "No. Servers": len(self.bot.guilds),
+            "Server names": [g.name for g in self.bot.guilds]
+        }
+
+    async def log(self, i=""):
+        """Retriev log file in discord file format.
+
+        Args:
+            i (str, optional): i-th log file, `str` from "" to "4". Defaults to "".
+        """
+        path = "log/VRMLbot.log"
+        if i:
+            path += f".{i}"
+        return discord.File(path, description=path)

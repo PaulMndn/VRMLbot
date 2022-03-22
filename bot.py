@@ -151,7 +151,20 @@ async def on_message(msg: discord.Message):
         await msg.channel.send(s)
 
     if cmd == "!stats":
-        pass
+        stats = await admin_actions.stats()
+        s = ""
+        for k, v in stats.items():
+            if isinstance(v, list):
+                v = ", ".join(v)
+            s += f"{k}: {v}\n"
+        await msg.channel.send(s[:2000])
+
+    if cmd == "!log":
+        try:
+            file = await admin_actions.log(content)
+            await msg.channel.send(file=file)
+        except FileNotFoundError:
+            await msg.channel.send(f"Invalid option `{content}`. File not found.")
 
 
 @bot.slash_command()
