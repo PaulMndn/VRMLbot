@@ -3,6 +3,10 @@ from datetime import time, datetime, timezone
 import asyncio
 import json
 import vrml
+import logging
+
+log = logging.getLogger(__name__)
+
 
 @loop(time=time(hour=0, minute=0))
 async def fetch_vrml_discord_player():
@@ -38,5 +42,8 @@ async def fetch_vrml_discord_player():
             json.dump(data, f)
 
 def start():
-    fetch_vrml_discord_player.start()
+    try:
+        fetch_vrml_discord_player.start()
+    except RuntimeError as e:
+        log.warning(f"{e.__class__.__name__}: {e}")
 
