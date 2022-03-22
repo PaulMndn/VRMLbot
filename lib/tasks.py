@@ -18,7 +18,9 @@ async def fetch_vrml_discord_player():
         # its not Monday morning
         return
     
+    log.info(f"Start updating cached discord id to player profiles.")
     for game in vrml.utils.short_game_names:
+        log.info(f"Updating cache for {game}...")
         game = await vrml.get_game(game)
         p_players = await game.fetch_players()
         players: list[vrml.Player]= []
@@ -40,6 +42,7 @@ async def fetch_vrml_discord_player():
             }
         with open(f"data/{game._short_name} - discord_players.json", "w") as f:
             json.dump(data, f)
+    log.info(f"Finished updating cached discord id to player profiles.")
 
 def start():
     try:
