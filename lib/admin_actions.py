@@ -12,7 +12,8 @@ class AdminActions:
              "!msg_guilds  Message system channel in all servers\n"
              "!msg_owners  Message all server owners\n"
              "!msg_both    Message server owners and system channels in all servers\n"
-            #  "!stats       Send bot stats"
+             "!stats       Send bot stats\n"
+             "!log         Send log file, 1-4 may be specified for log history"
              "```")
         return s
     
