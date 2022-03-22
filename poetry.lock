@@ -88,7 +88,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "py-cord"
-version = "2.0.0b3"
+version = "2.0.0b5"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -117,7 +117,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "685af58c59b0fb9e91f81b9ad7059f03471b16a3d60f9b9d4c556aa92163142d"
+content-hash = "83cdeb84d88e6c0c110b0f5e4aa6a1606d69e6cf8fdf86bd1ad628745235af44"
 
 [metadata.files]
 aiohttp = [
@@ -337,8 +337,8 @@ multidict = [
     {file = "multidict-6.0.2.tar.gz", hash = "sha256:5ff3bd75f38e4c43f1f470f2df7a4d430b821c4ce22be384e1459cb57d6bb013"},
 ]
 py-cord = [
-    {file = "py-cord-2.0.0b3.tar.gz", hash = "sha256:1b8fc69e1f8957dbd98851d9b648cdebcf0c44c1f9891caf85ec372477efd8d7"},
-    {file = "py_cord-2.0.0b3-py3-none-any.whl", hash = "sha256:08df16fce33f0acf0295580971e84c1d12e7586b70c72ec44edb9ccd4cb85f38"},
+    {file = "py-cord-2.0.0b5.tar.gz", hash = "sha256:bf58363d3bade00273113b2e8ecf4eca07f6d57a8836e0882275760055b3ecc6"},
+    {file = "py_cord-2.0.0b5-py3-none-any.whl", hash = "sha256:0d28dcc69be6e7f94ea5094fd37e2083fa1fa37e9cb4800c05c13732510c1282"},
 ]
 yarl = [
     {file = "yarl-1.7.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:f2a8508f7350512434e41065684076f640ecce176d262a7d54f0da41d99c5a95"},
