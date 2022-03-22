@@ -46,6 +46,7 @@ async def on_ready():
 
 @bot.event
 async def on_guild_join(guild):
+    log.info(f"Bot was added to new guild: {guild}, ID: {guild.id}")
     guilds[guild.id] = (Guild(guild.id))
     e = Embed(title="Hello :wave:")
     e.description = (
@@ -86,12 +87,15 @@ async def on_guild_join(guild):
             "VRML data like player or team info directly from inside Discord.\n"
             "Give it a try! Just type `/` to see my available commands."
         )
+    log.debug(f"{guild.id}: Welcome messages sent")
 
 
 @bot.event
 async def on_guild_remove(guild):
+    log.info(f"Bot left guild {guild}, ID: {guild.id}")
     if guild.id in guilds:
         del guilds[guild.id]
+
 
 @bot.event
 async def on_application_command(ctx):
