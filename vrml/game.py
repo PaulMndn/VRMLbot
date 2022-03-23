@@ -147,6 +147,5 @@ class Game:
             data = await asyncio.gather(*tasks)
             for d in data:
                 player_data += d['players']
-            log.debug(f"fetched {len(player_data)} player's data.")
         
         return [PartialPlayer(d) for d in player_data]

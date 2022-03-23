@@ -374,13 +374,5 @@ async def vrml_player(ctx, member):
         await ctx.respond("No VRML teams found.", ephemeral=True)
 
 
-@bot.slash_command()
-async def all_players(ctx):
-    await ctx.defer()
-    game = guilds[ctx.guild_id].default_game
-    game = await vrml.get_game(game)
-    players = await game.fetch_players()
-    await ctx.respond(f"{len(players)} found.")
-
 
 bot.run(config.token)
