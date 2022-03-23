@@ -1,5 +1,7 @@
 import asyncio
 import discord
+from .tasks import fetch_vrml_discord_player
+
 
 class AdminActions:
     def __init__(self, bot):
@@ -8,12 +10,13 @@ class AdminActions:
     async def help(self):
         s = ("Available admin commands:\n"
              "```\n"
-             "!help        Show this help\n"
-             "!msg_guilds  Message system channel in all servers\n"
-             "!msg_owners  Message all server owners\n"
-             "!msg_both    Message server owners and system channels in all servers\n"
-             "!stats       Send bot stats\n"
-             "!log         Send log file, 1-4 may be specified for log history"
+             "!help          Show this help\n"
+             "!msg_guilds    Message system channel in all servers\n"
+             "!msg_owners    Message all server owners\n"
+             "!msg_both      Message server owners and system channels in all servers\n"
+             "!stats         Send bot stats\n"
+             "!log           Send log file, 1-4 may be specified for log history\n"
+             "!update_cache  Update cached data from VRML\n"
              "```")
         return s
     
@@ -69,3 +72,7 @@ class AdminActions:
         if i:
             path += f".{i}"
         return discord.File(path, description=path)
+    
+    async def update_discord_players(self):
+        await fetch_vrml_discord_player.coro(force=True)
+

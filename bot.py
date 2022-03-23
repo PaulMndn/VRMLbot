@@ -165,6 +165,11 @@ async def on_message(msg: discord.Message):
             await msg.channel.send(file=file)
         except FileNotFoundError:
             await msg.channel.send(f"Invalid option `{content}`. File not found.")
+    
+    if cmd == "!update_cache":
+        await msg.channel.send("Start updating discord_players.json.")
+        await admin_actions.update_discord_players()
+        await msg.channel.send("Finished updating discord_players")
 
 
 @bot.slash_command()
