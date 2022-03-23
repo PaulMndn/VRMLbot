@@ -348,9 +348,31 @@ async def team(ctx,
                                   for t in teams])
 
 
-# @bot.user_command(name="VRML Team")
-# async def vrml_team(ctx, member):
-#     await ctx.respond(f"Some info about {member}.")
+@bot.user_command(name="VRML Player")
+async def vrml_player(ctx, member):
+    game = guilds[ctx.guild_id].default_game
+    cache = PlayerCache()
+    players = cache.get_players_from_discord_id(member.id, game)
+    players = await asyncio.gather(*[p.fetch() for p in players])
+    embeds = [p.get_embed() for p in players]
+    if embeds:
+        await ctx.respond("", embeds=embeds, ephemeral=True)
+    else:
+        await ctx.respond("No VRML player profiles found.", ephemeral=True)
+
+
+@bot.user_command(name="VRML Team")
+async def vrml_player(ctx, member):
+    game = guilds[ctx.guild_id].default_game
+    cache = PlayerCache()
+    teams = cache.get_teams_from_discord_id(member.id, game)
+    teams = await asyncio.gather(*[t.fetch() for t in teams])
+    embeds = [t.get_embed() for t in teams]
+    if embeds:
+        await ctx.respond("", embeds=embeds, ephemeral=True)
+    else:
+        await ctx.respond("No VRML teams found.", ephemeral=True)
+
 
 @bot.slash_command()
 async def all_players(ctx):
