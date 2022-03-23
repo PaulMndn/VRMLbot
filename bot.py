@@ -4,8 +4,10 @@ from discord.ext.commands import Bot
 import asyncio
 import logging
 from logging.handlers import RotatingFileHandler
+import re
+import json
 
-from lib import AdminActions, Config, Guild, tasks
+from lib import AdminActions, Config, Guild, tasks, PlayerCache
 import vrml
 
 
@@ -240,7 +242,7 @@ async def game(ctx,
 
 @bot.slash_command()
 async def player(ctx,
-                 name: Option(str, "Name of the player"),
+                 name: Option(str, "Name of the player or @ a member"),
                  game: Option(str, "Name of the game/league to search, all leagues are searched if omitted.", choices=["Any"]+game_names)=None):
     """Search for an active player."""
     await ctx.defer()   # buying some time
@@ -249,10 +251,18 @@ async def player(ctx,
     if game == "Any":
         game = None
     
-    players = await vrml.player_search(name)
-
-    exact_players = list(filter(lambda x: x.name.lower() == name.lower(),
-                                players))
+    if match := re.match("^<@.?(\d+)>$", name):
+        id = match.group(1)
+        players = []
+        with open("data/discord_players.json") as f:
+            discord_players = json.load(f)
+        exact_players = [vrml.PartialPlayer(d) 
+                         for d in discord_players.get(str(id), [])]
+    else:
+        players = await vrml.player_search(name)
+        exact_players = list(filter(lambda x: x.name.lower() == name.lower(),
+                                    players))
+    
     if exact_players:
         tasks = [bot.loop.create_task(p.fetch()) for p in exact_players]
         exact_players = await asyncio.gather(*tasks)
