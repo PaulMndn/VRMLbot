@@ -32,7 +32,7 @@ async def fetch_vrml_discord_player(force=False):
             if player.user.discord_id is None:
                 continue
             data[player.user.discord_id] = {
-                "game": game.name,
+                "game_name": game.name,
                 "player_id": player.id,
                 "player_name": player.name,
                 "team_id": player.team.id,
