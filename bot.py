@@ -4,8 +4,10 @@ from discord.ext.commands import Bot
 import asyncio
 import logging
 from logging.handlers import RotatingFileHandler
+import re
+import json
 
-from lib import AdminActions, Config, Guild, tasks
+from lib import AdminActions, Config, Guild, tasks, PlayerCache
 import vrml
 
 
@@ -240,7 +242,7 @@ async def game(ctx,
 
 @bot.slash_command()
 async def player(ctx,
-                 name: Option(str, "Name of the player"),
+                 name: Option(str, "Name of the player or @ a member"),
                  game: Option(str, "Name of the game/league to search, all leagues are searched if omitted.", choices=["Any"]+game_names)=None):
     """Search for an active player."""
     await ctx.defer()   # buying some time
@@ -249,10 +251,18 @@ async def player(ctx,
     if game == "Any":
         game = None
     
-    players = await vrml.player_search(name)
-
-    exact_players = list(filter(lambda x: x.name.lower() == name.lower(),
-                                players))
+    if match := re.match("^<@.?(\d+)>$", name):
+        id = match.group(1)
+        players = []
+        with open("data/discord_players.json") as f:
+            discord_players = json.load(f)
+        exact_players = [vrml.PartialPlayer(d) 
+                         for d in discord_players.get(str(id), [])]
+    else:
+        players = await vrml.player_search(name)
+        exact_players = list(filter(lambda x: x.name.lower() == name.lower(),
+                                    players))
+    
     if exact_players:
         tasks = [bot.loop.create_task(p.fetch()) for p in exact_players]
         exact_players = await asyncio.gather(*tasks)
@@ -338,17 +348,31 @@ async def team(ctx,
                                   for t in teams])
 
 
-# @bot.user_command(name="VRML Team")
-# async def vrml_team(ctx, member):
-#     await ctx.respond(f"Some info about {member}.")
-
-@bot.slash_command()
-async def all_players(ctx):
-    await ctx.defer()
+@bot.user_command(name="VRML Player")
+async def vrml_player(ctx, member):
     game = guilds[ctx.guild_id].default_game
-    game = await vrml.get_game(game)
-    players = await game.fetch_players()
-    await ctx.respond(f"{len(players)} found.")
+    cache = PlayerCache()
+    players = cache.get_players_from_discord_id(member.id, game)
+    players = await asyncio.gather(*[p.fetch() for p in players])
+    embeds = [p.get_embed() for p in players]
+    if embeds:
+        await ctx.respond("", embeds=embeds, ephemeral=True)
+    else:
+        await ctx.respond("No VRML player profiles found.", ephemeral=True)
+
+
+@bot.user_command(name="VRML Team")
+async def vrml_player(ctx, member):
+    game = guilds[ctx.guild_id].default_game
+    cache = PlayerCache()
+    teams = cache.get_teams_from_discord_id(member.id, game)
+    teams = await asyncio.gather(*[t.fetch() for t in teams])
+    embeds = [t.get_embed() for t in teams]
+    if embeds:
+        await ctx.respond("", embeds=embeds, ephemeral=True)
+    else:
+        await ctx.respond("No VRML teams found.", ephemeral=True)
+
 
 
 bot.run(config.token)
