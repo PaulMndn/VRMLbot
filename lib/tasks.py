@@ -4,6 +4,10 @@ import asyncio
 import json
 import logging
 import vrml
+import logging
+
+log = logging.getLogger(__name__)
+
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +22,9 @@ async def fetch_vrml_discord_player(force=False):
         log.debug(f"Skipped updating discord_players, not Monday.")
         return
     
+    log.info(f"Start updating cached discord id to player profiles.")
     for game in vrml.utils.short_game_names:
+        log.info(f"Updating cache for {game}...")
         game = await vrml.get_game(game)
         p_players = await game.fetch_players()
         players: list[vrml.Player]= []
@@ -40,7 +46,11 @@ async def fetch_vrml_discord_player(force=False):
             }
         with open(f"data/{game.name} - discord_players.json", "w") as f:
             json.dump(data, f)
+    log.info(f"Finished updating cached discord id to player profiles.")
 
 def start():
-    fetch_vrml_discord_player.start()
+    try:
+        fetch_vrml_discord_player.start()
+    except RuntimeError as e:
+        log.warning(f"{e.__class__.__name__}: {e}")
 

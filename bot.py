@@ -48,6 +48,7 @@ async def on_ready():
 
 @bot.event
 async def on_guild_join(guild):
+    log.info(f"Bot was added to new guild: {guild}, ID: {guild.id}")
     guilds[guild.id] = (Guild(guild.id))
     e = Embed(title="Hello :wave:")
     e.description = (
@@ -88,24 +89,35 @@ async def on_guild_join(guild):
             "VRML data like player or team info directly from inside Discord.\n"
             "Give it a try! Just type `/` to see my available commands."
         )
+    log.debug(f"{guild.id}: Welcome messages sent")
 
 
 @bot.event
 async def on_guild_remove(guild):
+    log.info(f"Bot left guild {guild}, ID: {guild.id}")
     if guild.id in guilds:
         del guilds[guild.id]
 
+
 @bot.event
-async def on_application_command_error(ctx, e):
-    original = e.original
+async def on_application_command(ctx):
+    cmd_name = ctx.command.qualified_name
     params = {}
-    for o in ctx.interaction.data.get('options',[]):
+    for o in ctx.interaction.data.get('options', []):
         params[o['name']] = o['value']
-    log.error(
-        f"An exception was raised during execution of command "
-        f"{ctx.command.name} with {params}")
-    log.error(f"Guild: {ctx.guild.name} ({ctx.guild_id}), author: {ctx.author}")
-    log.exception(f"{e.original.__class__.__name__}: {e.original}", 
+    log.info(f"{ctx.guild_id}: {ctx.author} sent command '{cmd_name}' "
+             f"with {params}.")
+
+@bot.event
+async def on_application_command_completion(ctx):
+    log.debug(f"{ctx.guild_id}: Finished command '{ctx.command.qualified_name}'.")
+
+@bot.event
+async def on_application_command_error(ctx, exc):
+    original = exc.original
+    log.error(f"{ctx.guild_id}: An exception was raised during execution "
+              f"of command '{ctx.command.qualified_name}'.")
+    log.exception(f"{original.__class__.__name__}: {original}", 
                   exc_info=original)
     
     if isinstance(original, vrml.http.HTTPServiceUnavailable):
@@ -132,6 +144,7 @@ async def on_message(msg: discord.Message):
     parts = msg.content.partition(" ")
     cmd, _, content = parts
     content = content.strip()
+    log.info(f"Admin sent {cmd} with {content}.")
 
     if cmd == "!help":
         s = await admin_actions.help()
