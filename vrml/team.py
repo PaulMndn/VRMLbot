@@ -43,6 +43,43 @@ class PartialTeam:      # like from /{game}/Teams/Search
         return Team(data)
 
 
+class StandingsTeam:
+    def __init__(self, data):
+        self.rank = data.get('rank', None)
+        self.games_played = data.get('gp', None)
+        self.wins = data.get('w', None)
+        self.ties = data.get('t', None)
+        self.loses = data.get('l', None)
+        self.points = data.get('pts', None)
+        self.plus_mnus = data.get('plusMinus', None)
+        self.cycle_games_played = data.get('cycleGP', None)
+        self.cycle_wins = data.get('cycleW', None)
+        self.cycle_ties = data.get('cycleT', None)
+        self.cycle_loses = data.get('cycleL', None)
+        self.cycle_tie_breaker = data.get('cycleTieBreaker', None)
+        self.cycle_plus_minus = data.get('cyclePlusMinus', None)
+        self.cycle_score_total = data.get('cycleScoreTotal', None)
+        self.is_recruiting = data.get('isRecruiting', None)
+        self.is_active = data.get('isActive', None)
+        self.division_name = data.get('divisionName', None)
+        self.division_logo_url = data.get("divisionLogo", None)
+        if self.division_logo_url is not None:
+            self.division_logo_url = BASE_URL + self.division_logo_url
+        self.id = data.get('teamID', None)
+        self.name = data.get('teamName', None)
+        self.logo_url = data.get('teamLogo', None)
+        if self.logo_url is not None:
+            self.logo_url = BASE_URL + self.logo_url
+        self.region_id = data.get('regionID', None)
+        self.region_name = data.get('regionName', None)
+
+        self.url = f"{BASE_URL}/Teams/{self.id}"
+    
+    async def fetch(self):
+        data = await http.get_team(self.id)
+        return Team(data)
+
+
 class Team:
     def __init__(self, data) -> None:
         # data["context"] is ignored for now
@@ -118,11 +155,18 @@ class Team:
         self.matches = [Match(d) for d in season_matches_data]     # TODO: to implement from season_matches_data
         self.ex_memers = [TeamPlayer(d) for d in ex_members_data]
 
-        self.url = BASE_URL \
-                   + f"/{short_game_names[self.game_name]}/Teams/{self.id}"
+        try:
+            self.url = BASE_URL \
+                    + f"/{short_game_names[self.game_name]}/Teams/{self.id}"
+        except KeyError:
+            self.url = None
         
         for match in self.matches + self.upcoming_matches:
             match.game_name = self.game_name    # set game_name for match.url
+    
+    async def fetch(self):
+        data = await http.get_team(self.id)
+        return Team(data)
 
     def get_embed(self, match_links=False, vod_links=True):
         "Return a `discord.Embed` object with details of the team."

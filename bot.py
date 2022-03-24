@@ -1,3 +1,4 @@
+from calendar import c
 import discord
 from discord import Embed, Option
 from discord.ext.commands import Bot
@@ -30,13 +31,15 @@ game_names = ["Echo Arena", "Onward", "Pavlov",
               "Snapshot", "Contractors", "Final Assault"]
 guilds = {}
 
-
-bot = Bot(debug_guilds=debug_guilds)
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+bot = Bot(debug_guilds=debug_guilds, intents=intents)
 admin_actions = AdminActions(bot)
 
 def init():
     for g in bot.guilds:
-        guilds[g.id] = (Guild(g.id))
+        guilds[g.id] = (Guild(bot, g.id))
     tasks.start()
 
 
@@ -359,6 +362,13 @@ async def team(ctx,
         teams = await asyncio.gather(*tasks)
         await ctx.respond(embeds=[t.get_embed(match_links, vod_links)
                                   for t in teams])
+
+@bot.slash_command()
+async def update_roles(ctx):
+    await ctx.respond("Updating team roles...")
+    guild = guilds[ctx.guild_id]
+    await guild.update_team_roles()
+    await ctx.respond("Finished.")
 
 
 @bot.user_command(name="VRML Player")

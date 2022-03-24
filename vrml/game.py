@@ -149,3 +149,13 @@ class Game:
                 player_data += d['players']
         
         return [PartialPlayer(d) for d in player_data]
+
+    async def fetch_standings(self, region="none"):
+        from .team import StandingsTeam
+        expect = 0
+        standings = []
+        while not expect > len(standings):
+            resp = await http.get_standings(self._short_name, expect+1, region)
+            standings += [StandingsTeam(d) for d in resp['teams']]
+            expect += resp['nbPerPage']
+        return standings

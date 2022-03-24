@@ -151,6 +151,12 @@ async def get_game_players(game, min_position=1):     # TODO: add aditional quer
     params = {"posMin": min_position}
     return await request(r, params=params)
 
+async def get_standings(game, min_rank=1, region="none"):
+    r = Route("GET", "/{game}/Standings", game=game)
+    params = {"rankMin": min_rank,
+              "region": region}
+    return await request(r, params=params)
+
 
 
 # async def main():
