@@ -27,16 +27,14 @@ log = logging.getLogger("main")
 debug_guilds = config.debug_guilds if config.dev else None
 game_names = ["Echo Arena", "Onward", "Pavlov",
               "Snapshot", "Contractors", "Final Assault"]
-guilds = {}
 
 
 bot = Bot(debug_guilds=debug_guilds)
-admin_actions = AdminActions(bot)
+admin_actions = lib.AdminActions(bot)
 
 def init():
-    for g in bot.guilds:
-        guilds[g.id] = (Guild(g.id))
-    tasks.start()
+    lib.init_guilds(bot)
+    lib.start_tasks()
 
 
 @bot.event
@@ -48,7 +46,6 @@ async def on_ready():
 @bot.event
 async def on_guild_join(guild):
     log.info(f"Bot was added to new guild: {guild}, ID: {guild.id}")
-    guilds[guild.id] = (lib.Guild(guild.id))
     e = Embed(title="Hello :wave:")
     e.description = (
         "Thanks for adding me to your server!\n"
@@ -94,8 +91,7 @@ async def on_guild_join(guild):
 @bot.event
 async def on_guild_remove(guild):
     log.info(f"Bot left guild {guild}, ID: {guild.id}")
-    if guild.id in guilds:
-        del guilds[guild.id]
+    lib.drop_guild(guild.id)
 
 
 @bot.event
@@ -226,7 +222,7 @@ async def set_game(ctx,
     if game == "None":
         game = None
     
-    guild = guilds[ctx.guild_id]
+    guild = lib.get_guild(ctx.guild_id)
     old = guild.default_game
     guild.default_game = game
     if old:
@@ -240,7 +236,7 @@ async def set_game(ctx,
 async def game(ctx,
                game: Option(str, "game name", choices=game_names)=None):
     "Get general information about a league in VRML."
-    game = game or guilds[ctx.guild_id].default_game
+    game = game or lib.get_guild(ctx.guild_id).default_game
     if game is None:
         # no game given and no default set
         await ctx.respond(
@@ -362,7 +358,7 @@ async def team(ctx,
 
 @bot.user_command(name="VRML Player")
 async def vrml_player(ctx, member):
-    game = guilds[ctx.guild_id].default_game
+    game = lib.get_guild(ctx.guild_id).default_game
     cache = lib.PlayerCache()
     players = cache.get_players_from_discord_id(member.id, game)
     players = await asyncio.gather(*[p.fetch() for p in players])
@@ -374,8 +370,8 @@ async def vrml_player(ctx, member):
 
 
 @bot.user_command(name="VRML Team")
-async def vrml_player(ctx, member):
-    game = guilds[ctx.guild_id].default_game
+async def vrml_team(ctx, member):
+    game = lib.get_guild(ctx.guild_id).default_game
     cache = lib.PlayerCache()
     teams = cache.get_teams_from_discord_id(member.id, game)
     teams = await asyncio.gather(*[t.fetch() for t in teams])
