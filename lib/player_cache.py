@@ -1,6 +1,10 @@
 import json
 import vrml
 
+__all__ = [
+    "PlayerCache"
+]
+
 class PlayerCache:
     def __init__(self):
         with open("data/discord_players.json") as f:

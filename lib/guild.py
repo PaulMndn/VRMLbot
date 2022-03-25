@@ -3,8 +3,15 @@ from pathlib import Path
 import asyncio
 from lib.utils import schedule
 
+__all__ = [
+    "Guild",
+    "get_guild",
+    "init_guilds"
+]
+
 class Guild:
-    def __init__(self, guild_id):
+    def __init__(self, bot, guild_id):
+        self.bot = bot
         self.guild_id = guild_id
         self._path = Path(f"data/{guild_id}.json")
         if not self._path.exists():

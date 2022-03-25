@@ -7,11 +7,10 @@ from logging.handlers import RotatingFileHandler
 import re
 import json
 
-from lib import AdminActions, Config, Guild, tasks, PlayerCache
+import lib
 import vrml
 
-
-config = Config()
+config = lib.get_config()
 
 logging.getLogger("discord").level=logging.INFO
 handler = RotatingFileHandler(filename="./log/VRMLbot.log",
@@ -49,7 +48,7 @@ async def on_ready():
 @bot.event
 async def on_guild_join(guild):
     log.info(f"Bot was added to new guild: {guild}, ID: {guild.id}")
-    guilds[guild.id] = (Guild(guild.id))
+    guilds[guild.id] = (lib.Guild(guild.id))
     e = Embed(title="Hello :wave:")
     e.description = (
         "Thanks for adding me to your server!\n"
@@ -364,7 +363,7 @@ async def team(ctx,
 @bot.user_command(name="VRML Player")
 async def vrml_player(ctx, member):
     game = guilds[ctx.guild_id].default_game
-    cache = PlayerCache()
+    cache = lib.PlayerCache()
     players = cache.get_players_from_discord_id(member.id, game)
     players = await asyncio.gather(*[p.fetch() for p in players])
     embeds = [p.get_embed() for p in players]
@@ -377,7 +376,7 @@ async def vrml_player(ctx, member):
 @bot.user_command(name="VRML Team")
 async def vrml_player(ctx, member):
     game = guilds[ctx.guild_id].default_game
-    cache = PlayerCache()
+    cache = lib.PlayerCache()
     teams = cache.get_teams_from_discord_id(member.id, game)
     teams = await asyncio.gather(*[t.fetch() for t in teams])
     embeds = [t.get_embed() for t in teams]

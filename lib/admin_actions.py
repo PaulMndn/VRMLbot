@@ -2,6 +2,9 @@ import asyncio
 import discord
 from .tasks import fetch_vrml_discord_player
 
+__all__ = [
+    "AdminActions",
+]
 
 class AdminActions:
     def __init__(self, bot):

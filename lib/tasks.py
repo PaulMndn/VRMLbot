@@ -6,8 +6,9 @@ import logging
 import vrml
 import logging
 
-log = logging.getLogger(__name__)
-
+__all__ = [
+    "start"
+]
 
 log = logging.getLogger(__name__)
 
