@@ -1,17 +1,16 @@
-from turtle import title
 import discord
-from discord import Embed, Option, OptionChoice
-from discord.ext import commands
+from discord import Embed, Option
 from discord.ext.commands import Bot
 import asyncio
 import logging
 from logging.handlers import RotatingFileHandler
-from lib.config import Config
+import re
+import json
+
+import lib
 import vrml
-from lib.guild import Guild
 
-
-config = Config()
+config = lib.get_config()
 
 logging.getLogger("discord").level=logging.INFO
 handler = RotatingFileHandler(filename="./log/VRMLbot.log",
@@ -28,14 +27,14 @@ log = logging.getLogger("main")
 debug_guilds = config.debug_guilds if config.dev else None
 game_names = ["Echo Arena", "Onward", "Pavlov",
               "Snapshot", "Contractors", "Final Assault"]
-guilds = {}
+
 
 bot = Bot(debug_guilds=debug_guilds)
-
+admin_actions = lib.AdminActions(bot)
 
 def init():
-    for g in bot.guilds:
-        guilds[g.id] = (Guild(g.id))
+    lib.init_guilds(bot)
+    lib.start_tasks()
 
 
 @bot.event
@@ -46,7 +45,7 @@ async def on_ready():
 
 @bot.event
 async def on_guild_join(guild):
-    guilds[guild.id] = (Guild(guild.id))
+    log.info(f"Bot was added to new guild: {guild}, ID: {guild.id}")
     e = Embed(title="Hello :wave:")
     e.description = (
         "Thanks for adding me to your server!\n"
@@ -86,24 +85,38 @@ async def on_guild_join(guild):
             "VRML data like player or team info directly from inside Discord.\n"
             "Give it a try! Just type `/` to see my available commands."
         )
+    log.debug(f"{guild.id}: Welcome messages sent")
 
 
 @bot.event
 async def on_guild_remove(guild):
-    if guild.id in guilds:
-        del guilds[guild.id]
+    log.info(f"Bot left guild {guild}, ID: {guild.id}")
+    lib.drop_guild(guild.id)
+
 
 @bot.event
-async def on_application_command_error(ctx, e):
-    original = e.original
+async def on_application_command(ctx):
+    cmd_name = ctx.command.qualified_name
     params = {}
-    for o in ctx.interaction.data['options']:
+    for o in ctx.interaction.data.get('options', []):
         params[o['name']] = o['value']
-    log.error(
-        f"An exception was raised during execution of command "
-        f"{ctx.command.name} with {params}")
-    log.error(f"Guild: {ctx.guild.name} ({ctx.guild_id}), author: {ctx.author}")
-    log.exception(f"{e.original.__class__.__name__}: {e.original}", 
+    log.info(f"{ctx.guild_id}: {ctx.author} sent command '{cmd_name}' "
+             f"with {params}.")
+
+@bot.event
+async def on_error(self, event_method: str, *args, **kwargs) -> None:
+    log.error(f"Error occured in {event_method}", exc_info=True)
+
+@bot.event
+async def on_application_command_completion(ctx):
+    log.debug(f"{ctx.guild_id}: Finished command '{ctx.command.qualified_name}'.")
+
+@bot.event
+async def on_application_command_error(ctx, exc):
+    original = exc.original
+    log.error(f"{ctx.guild_id}: An exception was raised during execution "
+              f"of command '{ctx.command.qualified_name}'.")
+    log.exception(f"{original.__class__.__name__}: {original}", 
                   exc_info=original)
     
     if isinstance(original, vrml.http.HTTPServiceUnavailable):
@@ -122,6 +135,67 @@ async def on_application_command_error(ctx, e):
             ephemeral=True)
 
 
+@bot.event
+async def on_message(msg: discord.Message):
+    if msg.guild is not None or msg.author.id != config.admin_id:
+        return
+    
+    cmd, sep, content = msg.content.partition(" ")
+    if not sep or "\n" in cmd:
+        cmd, sep, content = msg.content.partition("\n")
+    content = content.strip()
+    log.info(f"Admin sent {cmd} with {content !r}.")
+
+    if cmd == "!help":
+        s = await admin_actions.help()
+        await msg.channel.send(s)
+
+    if cmd == "!msg_guilds":
+        if not content:
+            await msg.channel.send(f"Please include a message.")
+            return
+        count = await admin_actions.msg_guilds(content)
+        await msg.channel.send(f"Sent message to {count}/{len(bot.guilds)} guild(s).")
+
+    if cmd == "!msg_owners":
+        if not content:
+            await msg.channel.send(f"Please include a message.")
+            return
+        count = await admin_actions.msg_owners(content)
+        await msg.channel.send(f"Sent message to {count} guild owners")
+    
+    if cmd == "!msg_both":
+        if not content:
+            await msg.channel.send(f"Please include a message.")
+            return
+        count_guilds, count_owners = await admin_actions.msg_both(content)
+        s = f"Sent message to {count_guilds}/{len(bot.guilds)} guild(s)."
+        await msg.channel.send(s)
+        s = f"Sent message to {count_owners} guild owners"
+        await msg.channel.send(s)
+
+    if cmd == "!stats":
+        stats = await admin_actions.stats()
+        s = ""
+        for k, v in stats.items():
+            if isinstance(v, list):
+                v = ", ".join(v)
+            s += f"{k}: {v}\n"
+        await msg.channel.send(s[:2000])
+
+    if cmd == "!log":
+        try:
+            file = await admin_actions.log(content)
+            await msg.channel.send(file=file)
+        except FileNotFoundError:
+            await msg.channel.send(f"Invalid option `{content}`. File not found.")
+    
+    if cmd == "!update_cache":
+        await msg.channel.send("Start updating discord_players.json.")
+        await admin_actions.update_discord_players()
+        await msg.channel.send("Finished updating discord_players")
+
+
 @bot.slash_command()
 async def about(ctx):
     'About this bot...'
@@ -136,7 +210,6 @@ async def about(ctx):
          "\n"
          "Features that are currently in development include:\n"
          "    - `standings` command for (regional) standings of a league\n"
-         "    - searching players by their Discord tag\n"
          "    - role management to add team roles to server members\n")
     await ctx.respond(s)
 
@@ -162,7 +235,7 @@ async def set_game(ctx,
     if game == "None":
         game = None
     
-    guild = guilds[ctx.guild_id]
+    guild = lib.get_guild(ctx.guild_id)
     old = guild.default_game
     guild.default_game = game
     if old:
@@ -176,7 +249,7 @@ async def set_game(ctx,
 async def game(ctx,
                game: Option(str, "game name", choices=game_names)=None):
     "Get general information about a league in VRML."
-    game = game or guilds[ctx.guild_id].default_game
+    game = game or lib.get_guild(ctx.guild_id).default_game
     if game is None:
         # no game given and no default set
         await ctx.respond(
@@ -190,19 +263,24 @@ async def game(ctx,
 
 @bot.slash_command()
 async def player(ctx,
-                 name: Option(str, "Name of the player"),
+                 name: Option(str, "Name of the player or @ a member"),
                  game: Option(str, "Name of the game/league to search, all leagues are searched if omitted.", choices=["Any"]+game_names)=None):
     """Search for an active player."""
     await ctx.defer()   # buying some time
 
-    game = game or guilds[ctx.guild_id].default_game
+    game = game or lib.get_guild(ctx.guild_id).default_game
     if game == "Any":
         game = None
     
-    players = await vrml.player_search(name)
-
-    exact_players = list(filter(lambda x: x.name.lower() == name.lower(),
-                                players))
+    if match := re.match("^<@!?(\d+)>$", name):
+        id = match.group(1)
+        players = []
+        exact_players = lib.PlayerCache().get_players_from_discord_id(id)
+    else:
+        players = await vrml.player_search(name)
+        exact_players = list(filter(lambda x: x.name.lower() == name.lower(),
+                                    players))
+    
     if exact_players:
         tasks = [bot.loop.create_task(p.fetch()) for p in exact_players]
         exact_players = await asyncio.gather(*tasks)
@@ -246,29 +324,37 @@ async def player(ctx,
 
 @bot.slash_command()
 async def team(ctx,
-               name: Option(str, "Team name to search for."),
+               name: Option(str, "Name of the team or @ a member."),
                match_links: Option(bool, name="match-links", description="Include match links (Default: false)")=False,
-               vod_links: Option(bool, name="vod-links", description="Include VOD links if exists (Default: true)")=True,
+               vod_links: Option(bool, name="vod-links", description="Include VOD links if exist (Default: true)")=True,
                game: Option(str, "The game the team plays.", choices=game_names)=None):
     "Get details on a specific team."
-    game = game or guilds[ctx.guild_id].default_game
-    if game is None:
-        await ctx.respond(
-            "Please spefify a game to search in. \n"
-            "You can set a default game for this server with `/set game`",
-            ephemeral=True)
-        return
 
-    await ctx.defer()
-    
-    game = await vrml.get_game(game)
-    teams = await game.search_team(name)
+    if match := re.match("^<@!?(\d+)>$", name):
+        # search team by discord member
+        id = match.group(1)
+        teams = lib.PlayerCache().get_teams_from_discord_id(id)
+        exact_team = None
+        await ctx.defer() # buying time
+    else:
+        # search team by name
+        game = game or lib.get_guild(ctx.guild_id).default_game
+        if game is None:
+            await ctx.respond(
+                "Please spefify a game to search in. \n"
+                "You can set a default game for this server with `/set game`",
+                ephemeral=True)
+            return
+        
+        await ctx.defer()   # buying time
+        game = await vrml.get_game(game)
+        teams = await game.search_team(name)
+        exact_team = next(filter(lambda t: t.name.lower() == name.lower(), teams), None)
     
     if len(teams) == 0:
         await ctx.respond("No teams found.")
         return
     
-    exact_team = next(filter(lambda t: t.name.lower() == name.lower(), teams), None)
     if exact_team is not None:
         team = await exact_team.fetch()
         await ctx.respond(embed=team.get_embed(match_links, vod_links))
@@ -288,9 +374,30 @@ async def team(ctx,
                                   for t in teams])
 
 
-# @bot.user_command(name="VRML Team")
-# async def vrml_team(ctx, member):
-#     await ctx.respond(f"Some info about {member}.")
+@bot.user_command(name="VRML Player")
+async def vrml_player(ctx, member):
+    game = lib.get_guild(ctx.guild_id).default_game
+    cache = lib.PlayerCache()
+    players = cache.get_players_from_discord_id(member.id, game)
+    players = await asyncio.gather(*[p.fetch() for p in players])
+    embeds = [p.get_embed() for p in players]
+    if embeds:
+        await ctx.respond("", embeds=embeds, ephemeral=True)
+    else:
+        await ctx.respond("No VRML player profiles found.", ephemeral=True)
+
+
+@bot.user_command(name="VRML Team")
+async def vrml_team(ctx, member):
+    game = lib.get_guild(ctx.guild_id).default_game
+    cache = lib.PlayerCache()
+    teams = cache.get_teams_from_discord_id(member.id, game)
+    teams = await asyncio.gather(*[t.fetch() for t in teams])
+    embeds = [t.get_embed() for t in teams]
+    if embeds:
+        await ctx.respond("", embeds=embeds, ephemeral=True)
+    else:
+        await ctx.respond("No VRML teams found.", ephemeral=True)
 
 
 

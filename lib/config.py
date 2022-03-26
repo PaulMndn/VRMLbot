@@ -2,6 +2,10 @@ import json
 from pathlib import Path
 import logging
 
+__all__ = [
+    "get_config"
+]
+
 log = logging.getLogger(__name__)
 
 class Config:
@@ -16,4 +20,7 @@ class Config:
         self.token = self._data.get("token", None)
         self.dev = self._data.get("dev", None)
         self.debug_guilds = self._data.get("debug_guilds", None)
+        self.admin_id = self._data.get("admin_id", None)
 
+def get_config():
+    return Config()

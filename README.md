@@ -16,13 +16,15 @@ Furthermore, a `config.json` file is required in the root directory. It contains
 {
     "token": "your.bot.token",
     "dev": false,
-    "debug_guilds": []
+    "debug_guilds": [],
+    "admin_id": 12345
 }
 ```
 
 - `"token"` is your Discord bot's token and is used to log in. This is required.
 - `"dev"` activates dev mode for the bot. This influences logging behabiour as well as using `debug_guilds`. Defaults to `false`.
 - `"debug_guilds"` is a list of guild ids as integer. In dev mode commands will not be registered globally but only in the guilds specified here. Defaults to an empty list.
+- `admin_id` the Discord user ID of the bot admin. Used for admin commands like
 
 ## Available commands
 
@@ -53,6 +55,34 @@ The result includes general team information, rostered players, upcoming matches
 ### `/ping`
 
 Ping the bot. This is only available in the debug guilds
+
+## Bot admin commands
+
+Only work via DM by the bot admin.
+
+### `!help`
+
+Show available commands.
+
+### `!msg_guilds message`
+
+Send `message` to the system channels in all guilds the bot is a member of.
+
+### `!msg_owners message`
+
+DM `message` to the owners of all guilds the bot is a member of.
+
+### `!msg_both message`
+
+Shortcut for [`!msg_guilds`](#msgguilds-message) and [`!msg_owners`](#msgowners-message).
+
+### `!log [n]`
+
+Returns the bot's log file. If a number between 1-4 is sent, the n-th historic log file is returned.
+
+### `!stats`
+
+Show some statistics about the bot.
 
 ## Features in development
 

@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 
 
 class HTTPException(Exception):
-    def __init__(self, msg, route, response) -> None:
+    def __init__(self, msg, route=None, response=None) -> None:
         pass
 
 class HTTPServiceUnavailable(HTTPException):
@@ -44,9 +44,9 @@ async def request(route, **kwargs):
     url = route.url
 
     async with aiohttp.ClientSession() as session:
-        for tries in range(5):
+        for tries in range(10):
             async with session.request(method, url, **kwargs) as r:
-                log.debug(f"{method} {url} has returned {r.status}")
+                log.debug(f"{method} {url} with {kwargs.get('params', {})} has returned {r.status}")
                 # request successfull, return json data
                 if r.status == 200:
                     data = json.loads(await r.text(encoding="utf-8"))
@@ -143,6 +143,13 @@ async def search_team(game, name, season=None, region=None):
 async def get_match_sets(match_id):
     r = Route("GET", "/Matches/{match_id}/Sets", match_id=match_id)
     return await request(r)
+
+
+async def get_game_players(game, min_position=1):     # TODO: add aditional query params when documented in API
+    """Get players in blocks of 100, starting from `minPos`."""
+    r = Route("GET", "/{game}/Players", game=game)
+    params = {"posMin": min_position}
+    return await request(r, params=params)
 
 
 
