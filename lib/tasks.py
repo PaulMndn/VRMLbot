@@ -37,11 +37,17 @@ async def fetch_vrml_discord_player(force=False):
                 for i in range(5):
                     try:
                         return await p_player.fetch()
-                    except TypeError:
+                    except Exception:
                         # Catch weird API response returning `None` instead
                         # of `dict` give it 5 tries or return `None`.
+                        # This usually results in `AttributeError` by trying
+                        # `None.get()` but all `Exception`s are caught just in
+                        # case.
+                        log.warning(f"{p_player.id}.fetch() raised Exception "
+                                    f"on try {i+1}.", exc_info=True)
                         continue
-                
+                log.warning(f"{p_player.id}.fetch() raised {i+1} `Exception`s "
+                            f"and will be skipped.")
             coros = [fetch_player(p) for p in p_players[i: i+10]]
             ret = await asyncio.gather(*coros)
             players += [p for p in ret if p is not None]
