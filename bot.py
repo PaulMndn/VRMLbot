@@ -147,14 +147,23 @@ async def on_message(msg: discord.Message):
         await msg.channel.send(s)
 
     if cmd == "!msg_guilds":
+        if not content:
+            await msg.channel.send(f"Please include a message.")
+            return
         count = await admin_actions.msg_guilds(content)
         await msg.channel.send(f"Sent message to {count}/{len(bot.guilds)} guild(s).")
 
     if cmd == "!msg_owners":
+        if not content:
+            await msg.channel.send(f"Please include a message.")
+            return
         count = await admin_actions.msg_owners(content)
         await msg.channel.send(f"Sent message to {count} guild owners")
     
     if cmd == "!msg_both":
+        if not content:
+            await msg.channel.send(f"Please include a message.")
+            return
         count_guilds, count_owners = await admin_actions.msg_both(content)
         s = f"Sent message to {count_guilds}/{len(bot.guilds)} guild(s)."
         await msg.channel.send(s)
