@@ -56,6 +56,7 @@ class Guild:
         except discord.Forbidden:
             log.warning(f"{guild.id}: Can't message system channel. "
                         f"Missing Permissions.")
+        return False
     
     async def message_owner(self, msg):
         guild = self.bot.get_guild(self.guild_id)
@@ -68,6 +69,7 @@ class Guild:
             return True
         except discord.Forbidden as e:
             log.error(f"{guild.id}: Can't DM owner {owner}. Missing Permissions")
+        return False
 
 
 _guilds = {}
