@@ -68,7 +68,7 @@ async def fetch_vrml_discord_player(force=False):
                 data[id] = [player_data]
     with open(f"data/discord_players.json", "w") as f:
         json.dump(data, f)
-    log.info(f"Finished updating cached discord id to player profiles.")
+    log.info(f"Finished updating discord_players.json.")
 
 def start_tasks():
     try:
