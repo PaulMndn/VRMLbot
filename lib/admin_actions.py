@@ -1,6 +1,7 @@
 import asyncio
 import discord
 from .tasks import fetch_vrml_discord_player
+from .guild import get_guild
 
 __all__ = [
     "AdminActions",
@@ -24,26 +25,36 @@ class AdminActions:
         return s
     
     async def msg_guilds(self, msg):
-        async def msg_guild(g, m):
-            if g.system_channel is not None:
-                await g.system_channel.send(m)
+        """Message system channels of all guilds the bot is a member of.
 
-        t = [msg_guild(g, msg) for g in self.bot.guilds]
-        await asyncio.gather(*t)
-        count = len([g for g in self.bot.guilds 
-                     if g.system_channel is not None])
-        return count
+        Args:
+            msg (str): Message
+
+        Returns:
+            int: Number of messaged guilds.
+        """
+        coros = []
+        for g in self.bot.guilds:
+            guild = get_guild(g.id)
+            coros.append(guild.message_guild(msg))
+        res = await asyncio.gather(*coros)
+        return sum(res)
     
     async def msg_owners(self, msg):
-        async def msg_owner(g, m):
-            if g.owner_id is not None:
-                owner = await self.bot.fetch_user(g.owner_id)
-                await owner.send(m)
-        
-        t = [msg_owner(g, msg) for g in self.bot.guilds]
-        await asyncio.gather(*t)
-        count = len([g for g in self.bot.guilds if g.owner_id is not None])
-        return count
+        """Message owners of all guilds the bot is a member of.
+
+        Args:
+            msg (str): Message
+
+        Returns:
+            int: Number of messaged owners.
+        """
+        coros = []
+        for g in self.bot.guilds:
+            guild = get_guild(g.id)
+            coros.append(guild.message_owner(msg))
+        res = await asyncio.gather(*coros)
+        return sum(res)
 
     async def msg_both(self, msg):
         """Messages system channels (if exist) and owners of all guilds.
