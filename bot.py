@@ -104,6 +104,10 @@ async def on_application_command(ctx):
              f"with {params}.")
 
 @bot.event
+async def on_error(self, event_method: str, *args, **kwargs) -> None:
+    log.error(f"Error occured in {event_method}", exc_info=True)
+
+@bot.event
 async def on_application_command_completion(ctx):
     log.debug(f"{ctx.guild_id}: Finished command '{ctx.command.qualified_name}'.")
 
