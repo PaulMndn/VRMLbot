@@ -206,7 +206,6 @@ async def about(ctx):
          "\n"
          "Features that are currently in development include:\n"
          "    - `standings` command for (regional) standings of a league\n"
-         "    - searching players by their Discord tag\n"
          "    - role management to add team roles to server members\n")
     await ctx.respond(s)
 
@@ -265,17 +264,14 @@ async def player(ctx,
     """Search for an active player."""
     await ctx.defer()   # buying some time
 
-    game = game or guilds[ctx.guild_id].default_game
+    game = game or lib.get_guild(ctx.guild_id).default_game
     if game == "Any":
         game = None
     
-    if match := re.match("^<@.?(\d+)>$", name):
+    if match := re.match("^<@!?(\d+)>$", name):
         id = match.group(1)
         players = []
-        with open("data/discord_players.json") as f:
-            discord_players = json.load(f)
-        exact_players = [vrml.PartialPlayer(d) 
-                         for d in discord_players.get(str(id), [])]
+        exact_players = lib.PlayerCache().get_players_from_discord_id(id)
     else:
         players = await vrml.player_search(name)
         exact_players = list(filter(lambda x: x.name.lower() == name.lower(),
@@ -324,29 +320,37 @@ async def player(ctx,
 
 @bot.slash_command()
 async def team(ctx,
-               name: Option(str, "Team name to search for."),
+               name: Option(str, "Name of the team or @ a member."),
                match_links: Option(bool, name="match-links", description="Include match links (Default: false)")=False,
-               vod_links: Option(bool, name="vod-links", description="Include VOD links if exists (Default: true)")=True,
+               vod_links: Option(bool, name="vod-links", description="Include VOD links if exist (Default: true)")=True,
                game: Option(str, "The game the team plays.", choices=game_names)=None):
     "Get details on a specific team."
-    game = game or guilds[ctx.guild_id].default_game
-    if game is None:
-        await ctx.respond(
-            "Please spefify a game to search in. \n"
-            "You can set a default game for this server with `/set game`",
-            ephemeral=True)
-        return
 
-    await ctx.defer()
-    
-    game = await vrml.get_game(game)
-    teams = await game.search_team(name)
+    if match := re.match("^<@!?(\d+)>$", name):
+        # search team by discord member
+        id = match.group(1)
+        teams = lib.PlayerCache().get_teams_from_discord_id(id)
+        exact_team = None
+        await ctx.defer() # buying time
+    else:
+        # search team by name
+        game = game or lib.get_guild(ctx.guild_id).default_game
+        if game is None:
+            await ctx.respond(
+                "Please spefify a game to search in. \n"
+                "You can set a default game for this server with `/set game`",
+                ephemeral=True)
+            return
+        
+        await ctx.defer()   # buying time
+        game = await vrml.get_game(game)
+        teams = await game.search_team(name)
+        exact_team = next(filter(lambda t: t.name.lower() == name.lower(), teams), None)
     
     if len(teams) == 0:
         await ctx.respond("No teams found.")
         return
     
-    exact_team = next(filter(lambda t: t.name.lower() == name.lower(), teams), None)
     if exact_team is not None:
         team = await exact_team.fetch()
         await ctx.respond(embed=team.get_embed(match_links, vod_links))
