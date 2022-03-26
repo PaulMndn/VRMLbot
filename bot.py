@@ -136,8 +136,9 @@ async def on_message(msg: discord.Message):
     if msg.guild is not None or msg.author.id != config.admin_id:
         return
     
-    parts = msg.content.partition(" ")
-    cmd, _, content = parts
+    cmd, sep, content = msg.content.partition(" ")
+    if not sep or "\n" in cmd:
+        cmd, sep, content = msg.content.partition("\n")
     content = content.strip()
     log.info(f"Admin sent {cmd} with {content}.")
 
