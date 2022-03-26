@@ -144,7 +144,7 @@ async def on_message(msg: discord.Message):
     if not sep or "\n" in cmd:
         cmd, sep, content = msg.content.partition("\n")
     content = content.strip()
-    log.info(f"Admin sent {cmd} with {content}.")
+    log.info(f"Admin sent {cmd} with {content !r}.")
 
     if cmd == "!help":
         s = await admin_actions.help()
