@@ -1,5 +1,9 @@
 import asyncio
 
+__all__ = [
+    "schedule"
+]
+
 def schedule(callable_or_coroutine, *Args, **Kwargs):
     func = callable_or_coroutine
     if not asyncio.iscoroutine(func):

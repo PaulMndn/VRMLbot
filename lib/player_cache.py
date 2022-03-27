@@ -1,10 +1,21 @@
 import json
+import logging
 import vrml
+
+__all__ = [
+    "PlayerCache"
+]
+
+log = logging.getLogger(__name__)
 
 class PlayerCache:
     def __init__(self):
-        with open("data/discord_players.json") as f:
-            self._data = json.load(f)
+        try:
+            with open("data/discord_players.json") as f:
+                self._data = json.load(f)
+        except FileNotFoundError as e:
+            log.error('"data/discord_players.json" file not found.')
+            self._data = {}
     
     def _get_players(self, id):
         return self._data.get(str(id), [])

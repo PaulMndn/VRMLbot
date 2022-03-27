@@ -222,5 +222,6 @@ class Team:
                         value=block,
                         inline=False)
 
-        e.set_footer(text=self.season.name)
+        e.set_footer(text=f"{self.season.name}\n"
+                          f"Game: {self.game_name}")
         return e

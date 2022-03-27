@@ -1,15 +1,28 @@
-from ctypes import pointer
 import json
 import logging
 from pathlib import Path
+import logging
 import discord
 from discord.ext.commands import Bot
-from functools import cached_property
 import vrml
-from lib.utils import schedule
+from .utils import schedule
 from .player_cache import PlayerCache
 
-log = logging.getLogger
+__all__ = [
+    "Guild",
+    "get_guild",
+    "drop_guild",
+    "init_guilds"
+]
+
+log = logging.getLogger(__name__)
+
+
+class SourceView(discord.ui.View):
+    def __init__(self, source):
+        super().__init__(
+            discord.ui.Button(label=f"Sent from server: {source}", 
+                              disabled=True))
 
 class Guild:
     POINTER_ROLE_NAME = "-----team_roles-----"
@@ -154,4 +167,49 @@ class Guild:
         await self._assign_team_roles()
         await self._delete_empty_team_roles()
         
+    async def message_guild(self, msg):
+        guild = self.bot.get_guild(self.guild_id)
+        channel = guild.system_channel
+        if not channel:
+            return False
+        try:
+            await channel.send(msg)
+            return True
+        except discord.Forbidden:
+            log.warning(f"{guild.id}: Can't message system channel. "
+                        f"Missing Permissions.")
+        return False
+    
+    async def message_owner(self, msg):
+        guild = self.bot.get_guild(self.guild_id)
+        owner = await self.bot.fetch_user(guild.owner_id)
+        if owner is None:
+            log.error(f"{guild.id}: No owner found to DM.")
+            return False
+        try:
+            await owner.send(msg, view=SourceView(guild.name))
+            return True
+        except discord.Forbidden as e:
+            log.error(f"{guild.id}: Can't DM owner {owner}. Missing Permissions")
+        return False
+
+
+_guilds = {}
+_bot = None
+
+def get_guild(guild_id):
+    g = _guilds.get(guild_id, None)
+    if g is None:
+        g = Guild(_bot, guild_id)
+        _guilds[guild_id] = g
+    return g
+
+def drop_guild(guild_id):
+    _guilds.pop(guild_id, None)
+
+def init_guilds(bot):
+    global _bot
+    _bot = bot
+    for guild in bot.guilds:
+        get_guild(guild.id)
 

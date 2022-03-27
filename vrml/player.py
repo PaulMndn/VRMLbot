@@ -75,7 +75,7 @@ class Player:       # like from `/Players/player_id/Detailed`
             d += f"**{self.bio_current.honours_mention}**"
         e.description = d
         e.set_thumbnail(url=self.logo_url)
-        e.set_footer(text=f"Plays {self.game.name}\nJoined VRML on")
+        e.set_footer(text=f"Game: {self.game.name}\nJoined VRML on")
         e.timestamp = self.user.date_joined
 
         s = "\n".join(
