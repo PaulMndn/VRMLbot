@@ -45,39 +45,58 @@ class Guild:
     @default_game.setter
     def default_game(self, game):
         self._data["default_game"] = game
-        schedule(self._sync)
+        self.sync()
     
-    @property
-    def team_roles(self):
+    def get_team_roles(self):
         return self._data.get("team_roles", None)
     
-    @team_roles.setter
-    def team_roles(self, val):
-        self._data["team_roles"] = val
-        schedule(self._sync)
-    
-    def get_managed_roles(self):
-        """Dictionary of `{"role_name": role_id}`"""
-        return self._data.get("managed_roles", {})
-    
-    def add_managed_role(self, role):
-        if "managed_roles" in self._data:
-            self._data['managed_roles'][role.name] = role.id
+    def add_team_role(self, role: discord.Role):
+        if "team_role" in self._data:
+            self._data['team_role'][role.name] = role.id
         else:
-            self._data['managed_roles'] = {role.name: role.id}
-        schedule(self._sync)
-    
-    def del_managed_role(self, id):
+            self._data['team_role'] = {role.name: role.id}
+        self.sync()
+        
+    def del_team_role(self, name):
         try:
-            del self._data['managed_roles'][str(id)]
+            del self._data['team_role'][name]
         except KeyError:
             pass
-        schedule(self._sync)
+        self.sync()
     
     def _sync(self):
         with open(str(self._path), "w") as f:
             json.dump(self._data, f)
     
+    def sync(self):
+        schedule(self._sync())
+    
+    async def message_guild(self, msg):
+        guild = self.bot.get_guild(self.guild_id)
+        channel = guild.system_channel
+        if not channel:
+            return False
+        try:
+            await channel.send(msg)
+            return True
+        except discord.Forbidden:
+            log.warning(f"{guild.id}: Can't message system channel. "
+                        f"Missing Permissions.")
+        return False
+    
+    async def message_owner(self, msg):
+        guild = self.bot.get_guild(self.guild_id)
+        owner = await self.bot.fetch_user(guild.owner_id)
+        if owner is None:
+            log.error(f"{guild.id}: No owner found to DM.")
+            return False
+        try:
+            await owner.send(msg, view=SourceView(guild.name))
+            return True
+        except discord.Forbidden as e:
+            log.error(f"{guild.id}: Can't DM owner {owner}. Missing Permissions")
+        return False
+
     async def _get_pointer_role(self):
         guild = self.bot.get_guild(self.guild_id)
         if not any(r.name == self.POINTER_ROLE_NAME for r in guild.roles):
@@ -159,6 +178,7 @@ class Guild:
                 await role.delete()
 
     async def update_team_roles(self):
+        roles_to_delete = self.team_roles()
         if not self.default_game:
             log.info(f"{self.guild_id}: No default game found, update of team roles skipped.")
             return
@@ -167,32 +187,6 @@ class Guild:
         await self._assign_team_roles()
         await self._delete_empty_team_roles()
         
-    async def message_guild(self, msg):
-        guild = self.bot.get_guild(self.guild_id)
-        channel = guild.system_channel
-        if not channel:
-            return False
-        try:
-            await channel.send(msg)
-            return True
-        except discord.Forbidden:
-            log.warning(f"{guild.id}: Can't message system channel. "
-                        f"Missing Permissions.")
-        return False
-    
-    async def message_owner(self, msg):
-        guild = self.bot.get_guild(self.guild_id)
-        owner = await self.bot.fetch_user(guild.owner_id)
-        if owner is None:
-            log.error(f"{guild.id}: No owner found to DM.")
-            return False
-        try:
-            await owner.send(msg, view=SourceView(guild.name))
-            return True
-        except discord.Forbidden as e:
-            log.error(f"{guild.id}: Can't DM owner {owner}. Missing Permissions")
-        return False
-
 
 _guilds = {}
 _bot = None
