@@ -30,6 +30,7 @@ class Guild:
     def __init__(self, bot, guild_id):
         self.bot: Bot = bot
         self.guild_id = guild_id
+        self._guild = bot.get_guild(guild_id)
         self._path = Path(f"data/{guild_id}.json")
         if not self._path.exists():
             self._data = {}
@@ -47,8 +48,17 @@ class Guild:
         self._data["default_game"] = game
         self.sync()
     
+    @property
+    def manage_team_roles(self):
+        return self._data.get("manage_team_roles", None)
+    
+    @manage_team_roles.setter
+    def manage_team_roles(self, val):
+        self._data["manage_team_roles"] = val
+        self.sync()
+    
     def get_team_roles(self):
-        return self._data.get("team_roles", None)
+        return self._data.get("team_roles", {}).copy()
     
     def add_team_role(self, role: discord.Role):
         if "team_role" in self._data:
@@ -176,16 +186,36 @@ class Guild:
             role = guild.get_role(id)
             if not any(r.id == role.id for m in guild.members for r in m.roles):
                 await role.delete()
+    
+    async def _create_assign_team_roles(self, managed_roles):
+        member_roles = set()
+        cache = PlayerCache()
+        for member in self.guild.members:
+            player_profiles = cache.get_players_from_discord_id(
+                id=member.id, 
+                game=self.default_game)
+            if player_profiles:
+                # member is playing in VRML, update roles
+                player = player_profiles[0]
+                
+            
+            else:
+                # member is not playing in VRML (any more)
+                # removing roles
+                pass
+        return member_roles
 
     async def update_team_roles(self):
-        roles_to_delete = self.team_roles()
+        if not self.manage_team_roles:
+            log.info(f"{self.guild_id}: Guild does not manage team roles.")
+            return
         if not self.default_game:
             log.info(f"{self.guild_id}: No default game found, update of team roles skipped.")
             return
-        roles = await self._get_needed_roles()
-        await self._create_sort_team_roles(roles)
-        await self._assign_team_roles()
-        await self._delete_empty_team_roles()
+        existing_roles = self.get_team_roles()
+        member_roles = await self._create_assign_team_roles(existing_roles)
+        await self._delete_empty_team_roles(roles)
+        await self._update_team_role_ranking
         
 
 _guilds = {}
