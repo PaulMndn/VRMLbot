@@ -30,7 +30,7 @@ class Guild:
     def __init__(self, bot, guild_id):
         self.bot: Bot = bot
         self.guild_id = guild_id
-        self._guild = bot.get_guild(guild_id)
+        self._guild: discord.Guild = bot.get_guild(guild_id)
         self._path = Path(f"data/{guild_id}.json")
         if not self._path.exists():
             self._data = {}
@@ -190,14 +190,20 @@ class Guild:
     async def _create_assign_team_roles(self, managed_roles):
         member_roles = set()
         cache = PlayerCache()
-        for member in self.guild.members:
-            player_profiles = cache.get_players_from_discord_id(
+        for member in self._guild.members:
+            players = cache.get_players_from_discord_id(
                 id=member.id, 
                 game=self.default_game)
-            if player_profiles:
+            if players:
                 # member is playing in VRML, update roles
-                player = player_profiles[0]
-                
+                player = players[0]
+                if len(players) > 1:
+                    # shouldn't happen but just in case log it
+                    m = (f"{member} is in {len(players)} teams in"
+                         f"{self.default_game}: "
+                         (str(p.team) for p in players))
+                    log.warn(m)
+                if any(r.id in self.get_team_roles.values() for r in member.roles):
             
             else:
                 # member is not playing in VRML (any more)

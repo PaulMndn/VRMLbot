@@ -29,6 +29,9 @@ class PartialPlayer:    # like from `/Players/Search`
         if self.logo_url is not None:
             self.logo_url = BASE_URL + self.logo_url
     
+    def __str__(self):
+        return self.name
+    
     async def fetch(self):
         data = await http.get_player_detailed(self.id)
         return Player(data)
