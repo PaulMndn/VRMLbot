@@ -3,12 +3,17 @@
 BASE_URL = "https://vrmasterleague.com"
 
 short_game_names = {
-    "Echo Arena": "EchoArena",
-    "Onward": "Onward",
-    "Pavlov": "Pavlov",
-    "Snapshot": "Snapshot",
+    "Archangel: Hellfire": "ArchangelHellfire",
+    "Blaston": "Blaston",
     "Contractors": "Contractors",
-    "Final Assault": "FinalAssault"
+    "Echo Arena": "EchoArena",
+    "Final Assault": "FinalAssault",
+    "Onward": "Onward",
+    "Pavlov PC only": "PavlovPC",
+    "Pavlov PS5/PC": "Pavlov",
+    "Snapshot": "Snapshot",
+    "Space Junkies": "SpaceJunkies",
+    "Ultimechs": "Ultimechs"
 }
 
 def dc_escape(string: str):
