@@ -25,8 +25,7 @@ log = logging.getLogger("main")
 
 
 debug_guilds = config.debug_guilds if config.dev else None
-game_names = ["Echo Arena", "Onward", "Pavlov",
-              "Snapshot", "Contractors", "Final Assault"]
+game_names = list(vrml.short_game_names.keys())
 
 
 bot = Bot(debug_guilds=debug_guilds)
@@ -104,7 +103,7 @@ async def on_application_command(ctx):
              f"with {params}.")
 
 @bot.event
-async def on_error(self, event_method: str, *args, **kwargs) -> None:
+async def on_error(event_method: str, *args, **kwargs) -> None:
     log.error(f"Error occured in {event_method}", exc_info=True)
 
 @bot.event
