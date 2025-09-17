@@ -4,7 +4,7 @@ from .game import PartialGame
 from .bio import Bio
 from . import http
 from datetime import datetime, timedelta
-from discord import Embed
+import discord
 
 __all__ = (
     "PartialPlayer",
@@ -63,7 +63,7 @@ class Player:       # like from `/Players/player_id/Detailed`
             self.team = PartialTeam(player_data.get("bioCurrent",{}))
         
     def get_embed(self):
-        e = Embed(title=dc_escape(self.name),
+        e = discord.Embed(title=dc_escape(self.name),
                   url=self.url)
         d = (f"Team: {self.team.name if self.team else '*not on a team*'}\n"
              f"Discord handle: `{self.user.discord_tag or 'Unlinked'}`\n"

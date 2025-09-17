@@ -3,8 +3,8 @@ from datetime import time, datetime, timezone
 import asyncio
 import json
 import logging
+from typing import Any
 import vrml
-import logging
 
 __all__ = [
     "start_tasks"
@@ -13,7 +13,7 @@ __all__ = [
 log = logging.getLogger(__name__)
 
 @loop(time=time(hour=0, minute=0))
-async def fetch_vrml_discord_player(force=False):
+async def fetch_vrml_discord_player(force: bool = False) -> None:
     """Separate for each game in VRML, the discord handle with 
     corresponding player_id and team_id and team rank are fetched.
     
@@ -70,7 +70,7 @@ async def fetch_vrml_discord_player(force=False):
         json.dump(data, f)
     log.info(f"Finished updating discord_players.json.")
 
-def start_tasks():
+def start_tasks() -> None:
     try:
         fetch_vrml_discord_player.start()
         log.info("Started tasks.")

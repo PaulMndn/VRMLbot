@@ -1,5 +1,6 @@
 import asyncio
 import discord
+from typing import Any
 from .tasks import fetch_vrml_discord_player
 from .guild import get_guild
 
@@ -8,10 +9,10 @@ __all__ = [
 ]
 
 class AdminActions:
-    def __init__(self, bot):
+    def __init__(self, bot: discord.Client) -> None:
         self.bot = bot
     
-    async def help(self):
+    async def help(self) -> str:
         s = ("Available admin commands:\n"
              "```\n"
              "!help          Show this help\n"
@@ -24,7 +25,7 @@ class AdminActions:
              "```")
         return s
     
-    async def msg_guilds(self, msg):
+    async def msg_guilds(self, msg: str) -> int:
         """Message system channels of all guilds the bot is a member of.
 
         Args:
@@ -40,7 +41,7 @@ class AdminActions:
         res = await asyncio.gather(*coros)
         return sum(res)
     
-    async def msg_owners(self, msg):
+    async def msg_owners(self, msg: str) -> int:
         """Message owners of all guilds the bot is a member of.
 
         Args:
@@ -56,7 +57,7 @@ class AdminActions:
         res = await asyncio.gather(*coros)
         return sum(res)
 
-    async def msg_both(self, msg):
+    async def msg_both(self, msg: str) -> tuple[int, int]:
         """Messages system channels (if exist) and owners of all guilds.
 
         Args:
@@ -70,13 +71,13 @@ class AdminActions:
         counts = await asyncio.gather(*t)
         return tuple(counts)
 
-    async def stats(self):
+    async def stats(self) -> dict[str, Any]:
         return {
             "No. Servers": len(self.bot.guilds),
             "Server names": [g.name for g in self.bot.guilds]
         }
 
-    async def log(self, i=""):
+    async def log(self, i: str = "") -> discord.File:
         """Retriev log file in discord file format.
 
         Args:
@@ -87,6 +88,6 @@ class AdminActions:
             path += f".{i}"
         return discord.File(path, description=path)
     
-    async def update_discord_players(self):
+    async def update_discord_players(self) -> None:
         await fetch_vrml_discord_player.coro(force=True)
 
