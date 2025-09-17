@@ -5,8 +5,8 @@ description = ""
 authors = ["PaulMndn <paul.m.menden@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-py-cord = "2.6.1"
+python = "^3.13"
+discord.py = "2.6.3"
 
 [tool.poetry.dev-dependencies]
 
