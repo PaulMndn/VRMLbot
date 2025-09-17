@@ -1,4 +1,4 @@
-from discord import Embed
+import discord
 from .utils import BASE_URL, short_game_names, dc_escape
 from . import http
 from .season import Season
@@ -126,7 +126,7 @@ class Team:
 
     def get_embed(self, match_links=False, vod_links=True):
         "Return a `discord.Embed` object with details of the team."
-        e = Embed(title=dc_escape(self.name),
+        e = discord.Embed(title=dc_escape(self.name),
                   url=self.url)
         e.set_author(name=self.division, icon_url=self.division_logo_url)
         e.description = (f"Rank {self.rank_regional}\n"

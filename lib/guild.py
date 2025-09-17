@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 import logging
 import discord
+from typing import Optional
 from .utils import schedule
 
 __all__ = [
@@ -15,13 +16,13 @@ log = logging.getLogger(__name__)
 
 
 class SourceView(discord.ui.View):
-    def __init__(self, source):
+    def __init__(self, source: str) -> None:
         super().__init__(
             discord.ui.Button(label=f"Sent from server: {source}", 
                               disabled=True))
 
 class Guild:
-    def __init__(self, bot, guild_id):
+    def __init__(self, bot: discord.Client, guild_id: int) -> None:
         self.bot = bot
         self.guild_id = guild_id
         self._path = Path(f"data/{guild_id}.json")
@@ -33,19 +34,19 @@ class Guild:
             self._data = json.load(f)
     
     @property
-    def default_game(self):
+    def default_game(self) -> Optional[str]:
         return self._data.get("default_game", None)
     
     @default_game.setter
-    def default_game(self, game):
+    def default_game(self, game: Optional[str]) -> None:
         self._data["default_game"] = game
         schedule(self._sync)
     
-    def _sync(self):
+    def _sync(self) -> None:
         with open(str(self._path), "w") as f:
             json.dump(self._data, f)
     
-    async def message_guild(self, msg):
+    async def message_guild(self, msg: str) -> bool:
         guild = self.bot.get_guild(self.guild_id)
         channel = guild.system_channel
         if not channel:
@@ -58,7 +59,7 @@ class Guild:
                         f"Missing Permissions.")
         return False
     
-    async def message_owner(self, msg):
+    async def message_owner(self, msg: str) -> bool:
         guild = self.bot.get_guild(self.guild_id)
         owner = await self.bot.fetch_user(guild.owner_id)
         if owner is None:
@@ -72,20 +73,20 @@ class Guild:
         return False
 
 
-_guilds = {}
-_bot = None
+_guilds: dict[int, Guild] = {}
+_bot: Optional[discord.Client] = None
 
-def get_guild(guild_id):
+def get_guild(guild_id: int) -> Guild:
     g = _guilds.get(guild_id, None)
     if g is None:
         g = Guild(_bot, guild_id)
         _guilds[guild_id] = g
     return g
 
-def drop_guild(guild_id):
+def drop_guild(guild_id: int) -> None:
     _guilds.pop(guild_id, None)
 
-def init_guilds(bot):
+def init_guilds(bot: discord.Client) -> None:
     global _bot
     _bot = bot
     for guild in bot.guilds:

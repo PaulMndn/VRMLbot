@@ -20,10 +20,10 @@ def dc_escape(string: str):
     "Return the string with all Discord message formatting characters escaped."
     if string is None:
         string = ""
-    return string.translate(str.maketrans({"*": "\*",
-                                           "_": "\_",
-                                           "`": "\`",
-                                           "<": "\<",
-                                           ">": "\>",
-                                           "|": "\|",
-                                           "~": "\~"}))
+    return string.translate(str.maketrans({"*": r"\*",
+                                           "_": r"\_",
+                                           "`": r"\`",
+                                           "<": r"\<",
+                                           ">": r"\>",
+                                           "|": r"\|",
+                                           "~": r"\~"}))

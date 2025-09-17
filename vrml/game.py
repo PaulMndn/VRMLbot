@@ -1,4 +1,4 @@
-from discord import Embed
+import discord
 import asyncio
 from . import BASE_URL, http
 from .utils import *
@@ -94,7 +94,7 @@ class Game:
         self._short_name = short_game_names[self.name]
     
     def get_embed(self):
-        e = Embed(title=self.name,
+        e = discord.Embed(title=self.name,
                   url=self.url)
         d = f"Current season: {self.current_season.name}"
         e.description = d
