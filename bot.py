@@ -141,7 +141,12 @@ async def on_application_command_completion(ctx):
 # Error handler for app_commands (slash commands)
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
-    if isinstance(error, app_commands.CommandInvokeError):
+    if isinstance(error, app_commands.CommandOnCooldown):
+        await interaction.response.send_message(
+            f"This command is on cooldown. Try again in {error.retry_after:.1f} seconds.",
+            ephemeral=True
+        )
+    elif isinstance(error, app_commands.CommandInvokeError):
         original = error.original
         log.error(f"{interaction.guild_id}: An exception was raised during execution "
                   f"of command '{interaction.command.name}'.")
@@ -165,6 +170,11 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
             await interaction.response.send_message(message, ephemeral=True)
     else:
         log.error(f"App command error: {error}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "An unexpected error occurred. Please try again later.",
+                ephemeral=True
+            )
 
 # Keep the old error handler for any remaining command framework usage        
 @bot.event
@@ -276,22 +286,82 @@ if config.dev:
         await interaction.response.send_message("Pong!")
 
 
-# Autocomplete functions for better UX
-async def game_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    """Provide autocomplete for game names"""
-    games = game_names
-    return [
-        app_commands.Choice(name=game, value=game)
-        for game in games if current.lower() in game.lower()
-    ][:25]  # Discord limits to 25 choices
+# Custom transformers for better parameter handling
+class GameTransformer(app_commands.Transformer):
+    """Transform game input to validate against available games"""
+    
+    async def transform(self, interaction: discord.Interaction, value: str) -> str:
+        # Validate the game exists
+        if value and value not in game_names:
+            # Try to find a close match (case insensitive)
+            for game in game_names:
+                if game.lower() == value.lower():
+                    return game
+            # If no exact match, return as-is and let the command handle it
+        return value
+    
+    async def autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+        """Provide autocomplete for game names"""
+        return [
+            app_commands.Choice(name=game, value=game)
+            for game in game_names if current.lower() in game.lower()
+        ][:25]  # Discord limits to 25 choices
 
-async def team_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    """Provide autocomplete for team names - simplified version"""
-    # For now, just return the current input as a choice
-    # In a full implementation, this could query the VRML API
-    if current:
-        return [app_commands.Choice(name=current, value=current)]
-    return []
+# Interactive views for better UX
+class TeamSelectionView(discord.ui.View):
+    """Interactive view for selecting teams when multiple are found"""
+    
+    def __init__(self, teams, match_links: bool = False, vod_links: bool = True):
+        super().__init__(timeout=300)  # 5 minute timeout
+        self.teams = teams
+        self.match_links = match_links
+        self.vod_links = vod_links
+        
+        # Add team selection dropdown if we have multiple teams
+        if len(teams) > 1:
+            self.add_item(TeamSelectDropdown(teams, match_links, vod_links))
+    
+    async def on_timeout(self):
+        # Disable all items when timeout occurs
+        for item in self.children:
+            item.disabled = True
+
+class TeamSelectDropdown(discord.ui.Select):
+    """Dropdown for selecting a team from multiple results"""
+    
+    def __init__(self, teams, match_links: bool, vod_links: bool):
+        self.teams = teams
+        self.match_links = match_links
+        self.vod_links = vod_links
+        
+        options = [
+            discord.SelectOption(
+                label=team.name[:100],  # Discord limits label length
+                description=f"Game: {team.game.name}" if hasattr(team, 'game') else "Team details",
+                value=str(i)
+            )
+            for i, team in enumerate(teams[:25])  # Discord limits to 25 options
+        ]
+        
+        super().__init__(
+            placeholder="Select a team to view details...",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+    
+    async def callback(self, interaction: discord.Interaction):
+        # Get the selected team
+        team_index = int(self.values[0])
+        selected_team = self.teams[team_index]
+        
+        # Fetch and show team details
+        team = await selected_team.fetch()
+        await interaction.response.send_message(
+            embed=team.get_embed(self.match_links, self.vod_links),
+            ephemeral=True
+        )
+
 class SetGroup(app_commands.Group):
     def __init__(self):
         super().__init__(name="set", description="Server settings commands")
@@ -347,6 +417,7 @@ async def game_cmd(interaction: discord.Interaction, game: Optional[str] = None)
     game="Name of the game/league to search, all leagues are searched if omitted"
 )
 @app_commands.choices(game=[app_commands.Choice(name="Any", value="Any")] + [app_commands.Choice(name=name, value=name) for name in game_names])
+@app_commands.checks.cooldown(1, 5.0, key=lambda i: (i.guild_id, i.user.id))  # 1 use per 5 seconds per user per guild
 async def player_cmd(interaction: discord.Interaction, name: str, game: Optional[str] = None):
     await interaction.response.defer()   # buying some time
 
@@ -412,6 +483,7 @@ async def player_cmd(interaction: discord.Interaction, name: str, game: Optional
     game="The game the team plays"
 )
 @app_commands.choices(game=[app_commands.Choice(name=name, value=name) for name in game_names])
+@app_commands.checks.cooldown(1, 3.0, key=lambda i: (i.guild_id, i.user.id))  # 1 use per 3 seconds per user per guild
 async def team_cmd(interaction: discord.Interaction, name: str, match_links: bool = False, vod_links: bool = True, game: Optional[str] = None):
     if match := re.match(r"^<@!?(\d+)>$", name):
         # search team by discord member
@@ -443,18 +515,29 @@ async def team_cmd(interaction: discord.Interaction, name: str, match_links: boo
         await interaction.followup.send(embed=team.get_embed(match_links, vod_links))
     else:
         if len(teams) > 10:
-            s = "More than 10 teams found. Please be more specific.\n" \
-                f"Found: {', '.join(t.name for t in teams)}"
+            # Too many teams, use interactive selection
+            view = TeamSelectionView(teams[:25], match_links, vod_links)  # Discord limits
+            s = f"Found {len(teams)} teams. Use the dropdown below to select one:\n" \
+                f"Showing first 25: {', '.join(t.name for t in teams[:25])}"
             if len(s) > 2000:
-                # cut off everything above the 2000 char limit
                 s = s[:1996] + " ..."
-            await interaction.followup.send(s)
+            await interaction.followup.send(s, view=view)
             return
-        
-        tasks = [asyncio.create_task(t.fetch()) for t in teams]
-        teams = await asyncio.gather(*tasks)
-        await interaction.followup.send(embeds=[t.get_embed(match_links, vod_links)
-                                  for t in teams])
+        elif len(teams) > 3:
+            # Medium number of teams, offer interactive selection
+            view = TeamSelectionView(teams, match_links, vod_links)
+            s = f"Found {len(teams)} teams. You can select one below or scroll through all results:\n" \
+                f"{', '.join(t.name for t in teams)}"
+            tasks = [asyncio.create_task(t.fetch()) for t in teams]
+            teams = await asyncio.gather(*tasks)
+            await interaction.followup.send(s, view=view, embeds=[t.get_embed(match_links, vod_links) for t in teams])
+            return
+        else:
+            # Few teams, just show them all
+            tasks = [asyncio.create_task(t.fetch()) for t in teams]
+            teams = await asyncio.gather(*tasks)
+            await interaction.followup.send(embeds=[t.get_embed(match_links, vod_links)
+                                      for t in teams])
 
 
 @bot.tree.context_menu(name="VRML Player")
