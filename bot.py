@@ -27,8 +27,11 @@ log = logging.getLogger("main")
 debug_guilds = config.debug_guilds if config.dev else None
 game_names = list(vrml.short_game_names.keys())
 
+# Set up intents for the bot
+intents = discord.Intents.default()
+intents.message_content = True  # Required for reading message content in admin commands
 
-bot = Bot(debug_guilds=debug_guilds)
+bot = Bot(debug_guilds=debug_guilds, intents=intents)
 admin_actions = lib.AdminActions(bot)
 
 def init():
@@ -129,7 +132,7 @@ async def on_application_command_error(ctx, exc):
         await ctx.respond(
             "An unknown error occured during execution of the command. "
             "Please try again later. \nIf the issue persists, please contact "
-            "the deveoper or report a bug. Infos for how and where to do that "
+            "the developer or report a bug. Infos for how and where to do that "
             "can be found in `/about`.",
             ephemeral=True)
 
@@ -238,7 +241,7 @@ async def set_game(ctx,
     old = guild.default_game
     guild.default_game = game
     if old:
-        s = f"Changed default game for this server vom {old} to {game}."
+        s = f"Changed default game for this server from {old} to {game}."
     else:
         s = f"Set default game for this server to {game}."
     await ctx.respond(s, ephemeral=True)
@@ -271,7 +274,7 @@ async def player(ctx,
     if game == "Any":
         game = None
     
-    if match := re.match("^<@!?(\d+)>$", name):
+    if match := re.match(r"^<@!?(\d+)>$", name):
         id = match.group(1)
         players = []
         exact_players = lib.PlayerCache().get_players_from_discord_id(id)
@@ -281,7 +284,7 @@ async def player(ctx,
                                     players))
     
     if exact_players:
-        tasks = [bot.loop.create_task(p.fetch()) for p in exact_players]
+        tasks = [asyncio.create_task(p.fetch()) for p in exact_players]
         exact_players = await asyncio.gather(*tasks)
         if game is not None:
             exact_players = list(filter(lambda p: p.game.name == game, 
@@ -302,7 +305,7 @@ async def player(ctx,
     if len(players) > 10:
         await ctx.respond("This might take a bit.", 
                           ephemeral=True)
-    fetch_tasks = [bot.loop.create_task(player.fetch()) 
+    fetch_tasks = [asyncio.create_task(player.fetch()) 
                    for player in players]
     players = await asyncio.gather(*fetch_tasks)
 
@@ -329,7 +332,7 @@ async def team(ctx,
                game: Option(str, "The game the team plays.", choices=game_names)=None):
     "Get details on a specific team."
 
-    if match := re.match("^<@!?(\d+)>$", name):
+    if match := re.match(r"^<@!?(\d+)>$", name):
         # search team by discord member
         id = match.group(1)
         teams = lib.PlayerCache().get_teams_from_discord_id(id)
@@ -340,7 +343,7 @@ async def team(ctx,
         game = game or lib.get_guild(ctx.guild_id).default_game
         if game is None:
             await ctx.respond(
-                "Please spefify a game to search in. \n"
+                "Please specify a game to search in. \n"
                 "You can set a default game for this server with `/set game`",
                 ephemeral=True)
             return
@@ -367,7 +370,7 @@ async def team(ctx,
             await ctx.respond(s)
             return
         
-        tasks = [bot.loop.create_task(t.fetch()) for t in teams]
+        tasks = [asyncio.create_task(t.fetch()) for t in teams]
         teams = await asyncio.gather(*tasks)
         await ctx.respond(embeds=[t.get_embed(match_links, vod_links)
                                   for t in teams])

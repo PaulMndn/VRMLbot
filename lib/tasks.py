@@ -18,7 +18,7 @@ async def fetch_vrml_discord_player(force=False):
     corresponding player_id and team_id and team rank are fetched.
     
     Only fetched on Monday 00:00 UTC"""
-    if not force and datetime.now(tz=timezone.utc).weekday != 0:
+    if not force and datetime.now(tz=timezone.utc).weekday() != 0:
         # its not Monday morning
         log.debug(f"Skipped updating discord_players, not Monday.")
         return
